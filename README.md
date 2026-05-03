@@ -1,8 +1,6 @@
-# 搜索引擎一键跳转
+# Scripts
 
-Tampermonkey 油猴用户脚本 — 在搜索结果页面添加其他搜索引擎的快捷跳转按钮，非搜索页面提供「星际搜索」快捷搜索面板。
-
-> **当前版本 v6.0** | Nerd Dark 终端主题 · Tokyo Night 配色 · SVG 图标 · 50+ 搜索引擎 · 拖拽面板 · 分类快捷搜索
+Tampermonkey 油猴用户脚本合集。
 
 ## 安装
 
@@ -10,62 +8,58 @@ Tampermonkey 油猴用户脚本 — 在搜索结果页面添加其他搜索引�
 
 [Tampermonkey 官网下载](https://www.tampermonkey.net/)
 
-### 第二步：安装脚本
+### 第二步：选择脚本安装
 
-> Chrome/Edge 等 Chromium 浏览器可能阻止直接安装，请使用以下方式之一：
+> Chrome/Edge 等 Chromium 浏览器可能阻止直接安装，请使用「仪表盘方式」。
 
-**方式一：通过 Tampermonkey 仪表盘安装（推荐）**
+---
 
-1. 复制脚本代码：[user.js](https://raw.githubusercontent.com/SantaChains/scripts/main/SearchRedireact/user.js)
+### 搜索引擎一键跳转
+
+在搜索结果页面添加其他搜索引擎的快捷跳转按钮，非搜索页面提供「星际搜索」快捷搜索面板。
+
+> v6.0 | Nerd Dark 终端主题 · 50+ 搜索引擎 · 拖拽面板 · 分类快捷搜索
+
+[GitHub 安装](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/SearchRedireact/user.js) | [源码](SearchRedireact/user.js) | [说明](SearchRedireact/use.md)
+
+---
+
+### Link Clear
+
+去除链接追踪参数、解析搜索引擎跳转、净化 URL。右键带追踪的链接即可一键获取干净 URL。
+
+> v1.0 | 50+ 追踪参数 · B站/淘宝/京东等站点适配 · 搜索引擎跳转解析
+
+[GitHub 安装](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/link-clear/user.js) | [源码](link-clear/user.js) | [说明](link-clear/use.md)
+
+---
+
+### Data Markdown
+
+将 HTML 中 `data-markdown` 元素的 Markdown 内容渲染为 HTML。
+
+> v2.0 | Showdown 2.x · XSS 防护 · MutationObserver 动态渲染
+
+[GitHub 安装](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/data-markdown/user.js) | [源码](data-markdown/user.js) | [说明](data-markdown/use.md)
+
+---
+
+## 安装方式
+
+**方式一：仪表盘安装（推荐，兼容所有浏览器）**
+
+1. 点击上方「GitHub 安装」链接，复制脚本源码
 2. 点击浏览器 Tampermonkey 图标 → **添加新脚本**
 3. 清空编辑区，粘贴复制的代码
 4. 按 `Ctrl + S` 保存
 
-**方式二：GitHub 直接安装**
+**方式二：直接安装**
 
-[点击安装脚本](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/SearchRedireact/user.js)
+点击「GitHub 安装」链接，若浏览器允许则 Tampermonkey 直接弹出安装确认。
 
-> 若浏览器阻止，请使用方式一。后续更新自动推送。
+## 更新
 
-## 功能
-
-- 搜索页面自动识别关键词，在页面上显示可跳转的其他搜索引擎按钮
-- 支持 50+ 搜索引擎（国内/国际/图片/壁纸/视频/购物/学术/社交/开发）
-- 「星际搜索」快捷面板，分类浏览，一键搜索
-- 按钮可拖拽，位置自动保存
-- 预设配置：国内预设、国际预设、图片预设、壁纸预设、全部预设
-- 自定义启用/禁用搜索引擎
-
-## 使用
-
-- 在任意搜索结果页面，点击左上角 ⭐ 按钮打开引擎跳转面板
-- 在非搜索页面，点击右下角 🪐 浮动按钮打开「星际搜索」面板
-- 点击 ⚙️ 可自定义启用的搜索引擎
-- ESC 键关闭所有面板
-
-## 支持的搜索引擎
-
-**国内**: 百度、必应、360、夸克、头条、微博、知乎、豆瓣、搜狗、搜狗微信、MitaAI、360AI
-
-**国际**: Google、Bing、Yahoo、Yandex、DuckDuckGo、Brave、Startpage、Ecosia、Qwant、WolframAlpha
-
-**AI**: Perplexity、Kagi、Claude、ChatGPT、Sage
-
-**学术**: Google Scholar、Google Patents
-
-**图片/壁纸**: Unsplash、Pixabay、Pexels、Wallpaper Engine
-
-**视频**: YouTube、B站
-
-**开发**: GitHub、GitLab
-
-## 自定义
-
-点击 ⚙️ 设置按钮，可：
-
-- 选择预设配置快速切换
-- 勾选/取消单个搜索引擎
-- 保存后页面自动刷新生效
+所有脚本通过 `@updateURL` 自动检查更新，Tampermonkey 会自动推送新版本。
 
 ## License
 
