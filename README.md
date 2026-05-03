@@ -28,7 +28,7 @@ Tampermonkey 油猴用户脚本合集。
 
 去除链接追踪参数、解析搜索引擎跳转、净化 URL。右键带追踪的链接即可一键获取干净 URL。
 
-> v1.0 | 50+ 追踪参数 · B站/淘宝/京东等站点适配 · 搜索引擎跳转解析
+> v1.2 | 50+ 追踪参数 · B站/淘宝/京东等站点适配 · 搜索引擎跳转解析
 
 [GitHub 安装](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/link-clear/user.js) | [源码](link-clear/user.js) | [说明](link-clear/use.md)
 
@@ -41,6 +41,26 @@ Tampermonkey 油猴用户脚本合集。
 > v2.0 | Showdown 2.x · XSS 防护 · MutationObserver 动态渲染
 
 [GitHub 安装](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/data-markdown/user.js) | [源码](data-markdown/user.js) | [说明](data-markdown/use.md)
+
+---
+
+### B站字幕下载器 Pro
+
+下载B站视频字幕（JSON/SRT），支持多P和语言选择，可通过菜单重新显示面板。
+
+> v2.0.0 | 多P支持 · 多语言 · 菜单控制
+
+[GitHub 安装](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/BiliSubtitle-down/user.js) | [源码](BiliSubtitle-down/user.js)
+
+---
+
+### Steam 成就 BBCode 生成器
+
+一键生成 Steam 成就列表的 BBCode，多种样式可选，支持自定义样式，支持全球成就和个人成就页面，还能复制单个成就的代码！
+
+> v1.3 | 多样式模板 · 自定义格式 · 单成就复制
+
+[GitHub 安装](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/SteamAchieveBBCode/user.js) | [源码](SteamAchieveBBCode/user.js)
 
 ---
 
