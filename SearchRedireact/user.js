@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         搜索引擎一键跳转
 // @namespace    http://tampermonkey.net/
-// @version      6.2
+// @version      6.3
 // @description  在搜索结果页面添加其他搜索引擎的快捷跳转按钮，支持自定义搜索引擎
 // @author       Punkjet & SantaChains
 // @match        *://*/*
@@ -112,7 +112,7 @@
     { name: 'Brave', url: 'https://search.brave.com/search?q=', key: 'q', match: /search\.brave\.com\/search.*?q=/, mark: 'Brave' },
     { name: 'YouTube', url: 'https://www.youtube.com/results?search_query=', key: 'search_query', match: /youtube\.com\/results.*?search_query=/, mark: 'YouTube' },
     { name: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Special:Search?search=', key: 'search', match: /en\.wikipedia\.org\/wiki\/Special:Search.*?search=/, mark: 'Wikipedia' },
-    { name: 'Instagram', url: 'https://www.instagram.com/explore/tags/', key: '', match: /instagram\.com\/explore\/tags\//, mark: 'Instagram' },
+    { name: 'Instagram', url: 'https://www.instagram.com/explore/tags/', key: '_tags', match: /instagram\.com\/explore\/tags\//, mark: 'Instagram' },
     { name: 'Tiktok', url: 'https://www.tiktok.com/search?q=', key: 'q', match: /tiktok\.com\/search.*?q=/, mark: 'Tiktok' },
     { name: 'Yandex图片', url: 'https://yandex.com/images/search?text=', key: 'text', match: /yandex\.com\/images\/search.*?text=/, mark: 'YandexImage' },
     { name: 'Bilibili', url: 'https://search.bilibili.com/all?keyword=', key: 'keyword', match: /search\.bilibili\.com\/all.*?keyword=/, mark: 'Bilibili' },
@@ -196,14 +196,14 @@
   var SEARCH_PARAMS = ['q', 'wd', 'query', 'keyword', 'search', 'term', 'kw', 'text', 'eingabe', 'p', 'MT', 'search_query', 'searchtext', 'i'];
 
   var ENGINE_MAP = {};
-  for (var emi = 0; emi < ENGINES.length; emi++) {
-    ENGINE_MAP[ENGINES[emi].mark] = ENGINES[emi];
+  for (var engineIndex = 0; engineIndex < ENGINES.length; engineIndex++) {
+    ENGINE_MAP[ENGINES[engineIndex].mark] = ENGINES[engineIndex];
   }
 
   var SEARCH_DOMAINS = {};
-  for (var sdi = 0; sdi < ENGINES.length; sdi++) {
-    var dm = ENGINES[sdi].match.source.replace(/\\./g, '.').replace(/\.\*/g, '*').replace(/\^/g, '').replace(/\\//g, '/');
-    var hostMatch = dm.match(/(?:https?:\/\/)?([a-z0-9.*-]+)/i);
+  for (var domainIndex = 0; domainIndex < ENGINES.length; domainIndex++) {
+    var domainPattern = ENGINES[domainIndex].match.source.replace(/\\./g, '.').replace(/\.\*/g, '*').replace(/\^/g, '').replace(/\\//g, '/');
+    var hostMatch = domainPattern.match(/(?:https?:\/\/)?([a-z0-9.*-]+)/i);
     if (hostMatch) SEARCH_DOMAINS[hostMatch[1]] = true;
   }
 
@@ -252,69 +252,145 @@
     return d.firstChild;
   }
 
+  // ─── 通用拖拽管理器 ───
+  var DragManager = {
+    activeHandlers: [],
+
+    create: function (element, options) {
+      var config = Object.assign({
+        onMove: null,
+        onEnd: null,
+        threshold: 5,
+        savePosition: null,
+        getInitialPosition: null
+      }, options);
+
+      var isDragging = false;
+      var hasDragged = false;
+      var startX = 0;
+      var startY = 0;
+      var elementStartX = 0;
+      var elementStartY = 0;
+      var rafId = null;
+      var clickStartTime = 0;
+
+      function onMouseMove(e) {
+        if (!isDragging || rafId) return;
+        rafId = requestAnimationFrame(function () {
+          var deltaX = e.clientX - startX;
+          var deltaY = e.clientY - startY;
+          if (Math.abs(deltaX) > config.threshold || Math.abs(deltaY) > config.threshold) {
+            hasDragged = true;
+          }
+          if (config.onMove) {
+            config.onMove(e, deltaX, deltaY, elementStartX, elementStartY);
+          }
+          rafId = null;
+        });
+      }
+
+      function onMouseUp() {
+        if (!isDragging) return;
+        isDragging = false;
+        element.classList.remove('punk-dragging');
+        element.style.cursor = 'move';
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        if (config.onEnd) config.onEnd(hasDragged);
+        if (config.savePosition && hasDragged) {
+          config.savePosition();
+        }
+      }
+
+      function onMouseDown(e) {
+        isDragging = true;
+        hasDragged = false;
+        clickStartTime = Date.now();
+        startX = e.clientX;
+        startY = e.clientY;
+        var initialPos = config.getInitialPosition ? config.getInitialPosition() : { x: 0, y: 0 };
+        elementStartX = initialPos.x;
+        elementStartY = initialPos.y;
+        element.classList.add('punk-dragging');
+        element.style.cursor = 'grabbing';
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+        e.preventDefault();
+      }
+
+      element.addEventListener('mousedown', onMouseDown);
+
+      var handler = {
+        hasDragged: function () { return hasDragged; },
+        resetDrag: function () { hasDragged = false; },
+        getClickDuration: function () { return Date.now() - clickStartTime; },
+        cleanup: function () {
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+        }
+      };
+
+      DragManager.activeHandlers.push(handler);
+      return handler;
+    },
+
+    cleanupAll: function () {
+      DragManager.activeHandlers.forEach(function (h) { h.cleanup(); });
+      DragManager.activeHandlers = [];
+    }
+  };
+
   // ─── 单例 CSS 注入（Glassmorphism + 交互 + 无障碍）───
   function injectCSS() {
     if (document.getElementById('punk-css')) return;
     var s = document.createElement('style');
     s.id = 'punk-css';
     s.textContent = [
-      // 动画
       '@keyframes punkIn{from{opacity:0;transform:translate(-50%,-50%) scale(.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}',
       '@keyframes punkSlide{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}',
       '@keyframes punkToast{from{opacity:0;transform:translateX(-50%) translateY(-12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}',
 
-      // 无障碍：减弱动画
       '@media(prefers-reduced-motion:reduce){',
       '.punk-anim{animation:none!important;transition:none!important}',
       '}',
 
-      // 通用按钮样式（CSS :hover 替代 JS 监听器）
       '.punk-btn{cursor:pointer;transition:background .18s ease,color .18s ease,border-color .18s ease,transform .15s ease,box-shadow .15s ease}',
       '.punk-btn:focus-visible{outline:2px solid ' + C.primary + ';outline-offset:2px}',
 
-      // 引擎按钮（搜索面板内）
       '.punk-eng{display:inline-block;padding:5px 10px;margin:2px;text-decoration:none;border-radius:' + C.radiusSm + ';font-size:11px;font-weight:500;white-space:nowrap;cursor:pointer;transition:background .18s ease,color .18s ease,box-shadow .18s ease}',
       '.punk-eng:not(.punk-eng-active){background:' + C.surface + ';color:' + C.text + '}',
       '.punk-eng:not(.punk-eng-active):hover{background:' + C.bgActive + ';color:' + C.primary + ';box-shadow:' + C.shadow1 + '}',
       '.punk-eng-active{background:' + C.grad + ';color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.25)}',
 
-      // 弹出按钮（跳转面板内）
       '.punk-pop-btn{padding:6px 12px;background:' + C.glass + ';color:' + C.text + ';border:1px solid ' + C.glassBorder + ';border-radius:' + C.radiusSm + ';font-size:12px;font-weight:500;cursor:pointer;transition:all .18s ease;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}',
       '.punk-pop-btn:hover{background:' + C.primary + ';color:#fff;border-color:' + C.primary + ';box-shadow:0 4px 12px rgba(124,58,237,.2)}',
 
-      // 标签按钮
       '.punk-tab{padding:10px 18px;border:none;background:transparent;color:' + C.textMuted + ';cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;font-size:13px;font-weight:500;transition:all .18s ease}',
       '.punk-tab:hover{background:' + C.surface + '}',
       '.punk-tab-active{background:' + C.surface + '!important;color:' + C.primary + '!important;border-bottom-color:' + C.primary + '!important;font-weight:600!important}',
 
-      // 网格按钮（星际搜索内）
       '.punk-grid-btn{padding:8px 12px;border:1px solid ' + C.glassBorder + ';background:' + C.glassDark + ';border-radius:' + C.radiusSm + ';cursor:pointer;font-size:12px;font-weight:500;color:' + C.text + ';transition:all .18s ease;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}',
       '.punk-grid-btn:hover{background:' + C.primary + ';color:#fff;border-color:' + C.primary + ';box-shadow:0 4px 12px rgba(124,58,237,.2);transform:translateY(-1px)}',
 
-      // 预设按钮
       '.punk-preset{flex:1;min-width:70px;padding:6px 10px;background:' + C.cta + ';border:none;color:#fff;border-radius:' + C.radiusSm + ';cursor:pointer;font-size:12px;font-weight:500;transition:all .18s ease}',
       '.punk-preset:hover{background:' + C.ctaHover + ';box-shadow:0 4px 12px rgba(6,182,212,.25)}',
 
-      // 保存按钮
       '.punk-save{margin-top:12px;padding:8px 20px;background:' + C.primary + ';color:#fff;border:none;border-radius:' + C.radiusSm + ';cursor:pointer;font-size:13px;font-weight:500;transition:all .18s ease}',
       '.punk-save:hover{background:' + C.primaryHover + ';box-shadow:0 4px 12px rgba(124,58,237,.25)}',
 
-      // 关闭按钮
       '.punk-close{width:24px;height:24px;background:rgba(86,95,137,.2);border:none;border-radius:' + C.radiusFull + ';cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s ease;color:' + C.textMuted + '}',
       '.punk-close:hover{background:rgba(158,206,106,.2);color:' + C.primary + '}',
 
-      // 触发按钮 hover（非拖拽时）
       '.punk-trigger{transition:transform .18s ease,box-shadow .18s ease}',
       '.punk-trigger:hover:not(.punk-dragging){transform:scale(1.08);box-shadow:0 12px 32px rgba(124,58,237,.35)}',
 
-      // 设置标签内 label hover
       '.punk-label{display:flex;align-items:center;padding:5px 6px;cursor:pointer;border-radius:' + C.radiusSm + ';transition:background .18s ease;background:' + C.surface + '}',
       '.punk-label:hover{background:' + C.bgActive + '}',
     ].join('\n');
     document.head.appendChild(s);
   }
 
-  // Toast 通知
   function showToast(msg) {
     var t = el('div', 'punk-anim',
       'position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-12px);' +
@@ -342,12 +418,10 @@
     var pos = GM_getValue('punk_search_position', { x: 10, y: 10 });
     var expanded = GM_getValue('punk_search_expanded', false);
 
-    // 主容器
     var box = el('div', null,
       'position:fixed;top:' + pos.y + 'px;left:' + pos.x + 'px;z-index:9999999;font-family:' + C.font + ';contain:layout;'
     );
 
-    // 切换按钮
     var btn = el('button', 'punk-anim',
       'padding:8px 10px;background:' + C.grad + ';color:#fff;border:none;' +
       'border-radius:' + C.radiusSm + ';cursor:pointer;font-size:14px;font-weight:600;' +
@@ -355,7 +429,6 @@
     );
     btn.appendChild(svgEl(ICON.star));
 
-    // Glassmorphism 面板
     var panel = el('div', 'punk-anim',
       'position:absolute;top:40px;left:0;' +
       'background:' + C.glass + ';backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);' +
@@ -364,7 +437,6 @@
       'display:' + (expanded ? 'block' : 'none') + ';'
     );
 
-    // 引擎按钮容器
     var wrap = el('div', null, 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;');
 
     enabled.forEach(function (mark) {
@@ -378,7 +450,6 @@
       wrap.appendChild(a);
     });
 
-    // 设置按钮
     var cfgBtn = el('button', 'punk-btn',
       'padding:5px 8px;margin:2px;background:' + C.cta + ';color:#fff;border:none;' +
       'border-radius:' + C.radiusSm + ';cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap;'
@@ -397,51 +468,32 @@
     box.appendChild(btn);
     box.appendChild(panel);
 
-    // 拖拽（RAF 节流 + 按需挂载）
     var isExpanded = expanded;
-    var isDrag = false, hasDragged = false, dx, dy, rafId = null;
-    function onMove(e) {
-      if (!isDrag || rafId) return;
-      hasDragged = true;
-      rafId = requestAnimationFrame(function () {
-        box.style.left = Math.max(0, Math.min(window.innerWidth - 100, e.clientX - dx)) + 'px';
-        box.style.top = Math.max(0, Math.min(window.innerHeight - 50, e.clientY - dy)) + 'px';
-        rafId = null;
-      });
-    }
-    function onUp() {
-      if (!isDrag) return;
-      isDrag = false;
-      btn.classList.remove('punk-dragging');
-      btn.style.cursor = 'pointer';
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-      GM_setValue('punk_search_position', { x: parseInt(box.style.left), y: parseInt(box.style.top) });
-    }
-    btn.addEventListener('mousedown', function (e) {
-      isDrag = true;
-      hasDragged = false;
-      dx = e.clientX - box.offsetLeft;
-      dy = e.clientY - box.offsetTop;
-      btn.classList.add('punk-dragging');
-      btn.style.cursor = 'grabbing';
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-      e.preventDefault();
+    var dragHandler = DragManager.create(btn, {
+      onMove: function (e, deltaX, deltaY, elemStartX, elemStartY) {
+        box.style.left = Math.max(0, Math.min(window.innerWidth - 100, elemStartX + deltaX)) + 'px';
+        box.style.top = Math.max(0, Math.min(window.innerHeight - 50, elemStartY + deltaY)) + 'px';
+      },
+      savePosition: function () {
+        GM_setValue('punk_search_position', { x: parseInt(box.style.left), y: parseInt(box.style.top) });
+      },
+      getInitialPosition: function () {
+        return { x: parseInt(box.style.left) || pos.x, y: parseInt(box.style.top) || pos.y };
+      }
     });
 
-    // 展开/收起（排除拖拽）
     btn.addEventListener('click', function () {
-      if (hasDragged) { hasDragged = false; return; }
+      if (dragHandler.hasDragged()) {
+        dragHandler.resetDrag();
+        return;
+      }
       isExpanded = !isExpanded;
       panel.style.display = isExpanded ? 'block' : 'none';
       GM_setValue('punk_search_expanded', isExpanded);
     });
 
-    // 点击外部收起
     document.addEventListener('click', function (e) {
-      if (hasDragged) return;
+      if (dragHandler.hasDragged()) return;
       if (isExpanded && !box.contains(e.target)) {
         isExpanded = false;
         panel.style.display = 'none';
@@ -465,47 +517,31 @@
     trigger.appendChild(svgEl(ICON.planet));
     trigger.id = 'punk-qs-trigger';
 
-    var isDrag = false, hasDrag = false, t0 = 0, sx, sy, sl, sb, rafId = null;
-
-    function onMove(e) {
-      if (!isDrag || rafId) return;
-      rafId = requestAnimationFrame(function () {
-        var ddx = e.clientX - sx, ddy = e.clientY - sy;
-        if (Math.abs(ddx) > 5 || Math.abs(ddy) > 5) hasDrag = true;
-        trigger.style.left = Math.max(0, Math.min(sl + ddx, window.innerWidth - 50)) + 'px';
-        trigger.style.bottom = Math.max(0, Math.min(sb - ddy, window.innerHeight - 50)) + 'px';
-        rafId = null;
-      });
-    }
-    function onUp() {
-      if (!isDrag) return;
-      isDrag = false;
-      trigger.classList.remove('punk-dragging');
-      trigger.style.cursor = 'move';
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-      GM_setValue('punk_quick_search_position', {
-        left: parseInt(trigger.style.left), bottom: parseInt(trigger.style.bottom),
-      });
-      if (hasDrag) { hasDrag = false; return; }
-    }
-
-    trigger.addEventListener('mousedown', function (e) {
-      isDrag = true; hasDrag = false; t0 = Date.now();
-      sx = e.clientX; sy = e.clientY;
-      sl = parseInt(trigger.style.left) || 20;
-      sb = parseInt(trigger.style.bottom) || 80;
-      trigger.classList.add('punk-dragging');
-      trigger.style.cursor = 'grabbing';
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-      e.preventDefault();
+    var dragHandler = DragManager.create(trigger, {
+      onMove: function (e, deltaX, deltaY, elemStartLeft, elemStartBottom) {
+        trigger.style.left = Math.max(0, Math.min(elemStartLeft + deltaX, window.innerWidth - 50)) + 'px';
+        trigger.style.bottom = Math.max(0, Math.min(elemStartBottom - deltaY, window.innerHeight - 50)) + 'px';
+      },
+      savePosition: function () {
+        GM_setValue('punk_quick_search_position', {
+          left: parseInt(trigger.style.left),
+          bottom: parseInt(trigger.style.bottom),
+        });
+      },
+      getInitialPosition: function () {
+        return {
+          x: parseInt(trigger.style.left) || savedPos.left,
+          y: parseInt(trigger.style.bottom) || savedPos.bottom
+        };
+      }
     });
 
     trigger.addEventListener('click', function () {
-      if (hasDrag) { hasDrag = false; return; }
-      if (Date.now() - t0 > 200) return;
+      if (dragHandler.hasDragged()) {
+        dragHandler.resetDrag();
+        return;
+      }
+      if (dragHandler.getClickDuration() > 200) return;
       toggleJumpPanel(trigger);
     });
 
@@ -513,9 +549,18 @@
   }
 
   // ─── 跳转面板 ───
+  var activePanelHandler = null;
+
   function toggleJumpPanel(anchor) {
     var existing = document.getElementById('punk-jump-panel');
-    if (existing) { existing.remove(); return; }
+    if (existing) {
+      existing.remove();
+      if (activePanelHandler) {
+        document.removeEventListener('click', activePanelHandler);
+        activePanelHandler = null;
+      }
+      return;
+    }
 
     var enabled = getEnabledMarks();
     var panel = el('div', 'punk-anim',
@@ -542,7 +587,14 @@
       if (!eng) return;
       var b = el('button', 'punk-pop-btn');
       b.textContent = eng.name;
-      b.addEventListener('click', function () { panel.remove(); openQuickSearch(eng); });
+      b.addEventListener('click', function () {
+        panel.remove();
+        if (activePanelHandler) {
+          document.removeEventListener('click', activePanelHandler);
+          activePanelHandler = null;
+        }
+        openQuickSearch(eng);
+      });
       wrap.appendChild(b);
     });
 
@@ -552,15 +604,23 @@
       'position:absolute;top:8px;right:8px;'
     );
     close.appendChild(svgEl(ICON.close));
-    close.addEventListener('click', function () { panel.remove(); });
-    panel.appendChild(close);
-
-    document.addEventListener('click', function handler(e) {
-      if (!panel.contains(e.target) && e.target !== anchor && !anchor.contains(e.target)) {
-        panel.remove();
-        document.removeEventListener('click', handler);
+    close.addEventListener('click', function () {
+      panel.remove();
+      if (activePanelHandler) {
+        document.removeEventListener('click', activePanelHandler);
+        activePanelHandler = null;
       }
     });
+    panel.appendChild(close);
+
+    activePanelHandler = function (e) {
+      if (!panel.contains(e.target) && e.target !== anchor && !anchor.contains(e.target)) {
+        panel.remove();
+        document.removeEventListener('click', activePanelHandler);
+        activePanelHandler = null;
+      }
+    };
+    document.addEventListener('click', activePanelHandler);
 
     document.body.appendChild(panel);
   }
@@ -581,7 +641,6 @@
     );
     div.id = 'punk-qs';
 
-    // 头部
     var header = el('div', null,
       'padding:20px 28px;background:' + C.grad + ';color:#fff;text-align:center;position:relative;'
     );
@@ -630,12 +689,10 @@
     header.appendChild(inputWrap);
     div.appendChild(header);
 
-    // 内容区
     var content = el('div', null,
       'padding:0;max-height:50vh;overflow-y:auto;background:' + C.surface + ';'
     );
 
-    // 标签栏
     var tabBar = el('div', null,
       'display:flex;background:' + C.glassDark + ';border-bottom:1px solid ' + C.glassBorder + ';' +
       'overflow-x:auto;scrollbar-width:none;'
@@ -749,7 +806,9 @@
       tabBody.appendChild(engBox);
     }
 
-    renderTab(QUICK_TABS[0].list);
+    if (QUICK_TABS[0] && QUICK_TABS[0].list) {
+      renderTab(QUICK_TABS[0].list);
+    }
     content.appendChild(tabBar);
     content.appendChild(tabBody);
     div.appendChild(content);
@@ -770,7 +829,7 @@
         if (selectedEngine) {
           window.open(selectedEngine.url + encodeURIComponent(k), '_blank');
         } else {
-          var firstBtn = div.querySelector('.punk-pop-btn');
+          var firstBtn = div.querySelector('.punk-grid-btn');
           if (firstBtn) firstBtn.click();
         }
       }
@@ -792,7 +851,13 @@
         var qs = document.getElementById('punk-qs');
         if (qs) { qs.remove(); return; }
         var jp = document.getElementById('punk-jump-panel');
-        if (jp) jp.remove();
+        if (jp) {
+          jp.remove();
+          if (activePanelHandler) {
+            document.removeEventListener('click', activePanelHandler);
+            activePanelHandler = null;
+          }
+        }
       });
       window.__punkEsc = true;
     }

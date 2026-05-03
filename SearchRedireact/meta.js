@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         搜索引擎一键跳转
 // @namespace    http://tampermonkey.net/
-// @version      6.2
+// @version      6.3
 // @description  在搜索结果页面添加其他搜索引擎的快捷跳转按钮，支持自定义搜索引擎
 // @author       Punkjet & SantaChains
 // @match        *://*/*

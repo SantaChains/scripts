@@ -20,7 +20,7 @@ Tampermonkey 油猴用户脚本合集。
 
 > v6.2 | Nerd Dark 终端主题 · 50+ 搜索引擎 · 拖拽面板 · 分类快捷搜索
 
-[GitHub 安装](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/SearchRedireact/user.js) | [源码](SearchRedireact/user.js) | [说明](SearchRedireact/use.md)
+[GitHub 安装](https://github.com/SantaChains/scripts/raw/main/SearchRedireact/user.js) | [源码](SearchRedireact/user.js) | [说明](SearchRedireact/use.md)
 
 ---
 
@@ -30,7 +30,7 @@ Tampermonkey 油猴用户脚本合集。
 
 > v1.4 | 50+ 追踪参数 · B站/淘宝/京东等站点适配 · 搜索引擎跳转解析
 
-[GitHub 安装](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/link-clear/user.js) | [源码](link-clear/user.js) | [说明](link-clear/use.md)
+[GitHub 安装](https://github.com/SantaChains/scripts/raw/main/link-clear/user.js) | [源码](link-clear/user.js) | [说明](link-clear/use.md)
 
 ---
 
@@ -40,7 +40,7 @@ Tampermonkey 油猴用户脚本合集。
 
 > v2.2 | Showdown 2.x · XSS 防护 · MutationObserver 动态渲染
 
-[GitHub 安装](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/data-markdown/user.js) | [源码](data-markdown/user.js) | [说明](data-markdown/use.md)
+[GitHub 安装](https://github.com/SantaChains/scripts/raw/main/data-markdown/user.js) | [源码](data-markdown/user.js) | [说明](data-markdown/use.md)
 
 ---
 
@@ -50,7 +50,7 @@ Tampermonkey 油猴用户脚本合集。
 
 > v2.1.1 | 多P支持 · 多语言 · 菜单控制
 
-[GitHub 安装](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/BiliSubtitle-down/user.js) | [源码](BiliSubtitle-down/user.js)
+[GitHub 安装](https://github.com/SantaChains/scripts/raw/main/BiliSubtitle-down/user.js) | [源码](BiliSubtitle-down/user.js)
 
 ---
 
@@ -60,7 +60,7 @@ Tampermonkey 油猴用户脚本合集。
 
 > v1.5 | 多样式模板 · 自定义格式 · 单成就复制
 
-[GitHub 安装](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/SteamAchieveBBCode/user.js) | [源码](SteamAchieveBBCode/user.js)
+[GitHub 安装](https://github.com/SantaChains/scripts/raw/main/SteamAchieveBBCode/user.js) | [源码](SteamAchieveBBCode/user.js)
 
 ---
 
