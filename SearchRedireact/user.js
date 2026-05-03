@@ -112,7 +112,7 @@
     { name: 'Brave', url: 'https://search.brave.com/search?q=', key: 'q', match: /search\.brave\.com\/search.*?q=/, mark: 'Brave' },
     { name: 'YouTube', url: 'https://www.youtube.com/results?search_query=', key: 'search_query', match: /youtube\.com\/results.*?search_query=/, mark: 'YouTube' },
     { name: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Special:Search?search=', key: 'search', match: /en\.wikipedia\.org\/wiki\/Special:Search.*?search=/, mark: 'Wikipedia' },
-    { name: 'Instagram', url: 'https://www.instagram.com/explore/tags/', key: '', match: /instagram\.com\/explore\/tags\//, mark: 'Instagram' },
+    { name: 'Instagram', url: 'https://www.instagram.com/explore/tags/', key: '', match: /instagram\.com\/explore\/tags\//, mark: 'Instagram', suffix: '/' },
     { name: 'Tiktok', url: 'https://www.tiktok.com/search?q=', key: 'q', match: /tiktok\.com\/search.*?q=/, mark: 'Tiktok' },
     { name: 'Yandex图片', url: 'https://yandex.com/images/search?text=', key: 'text', match: /yandex\.com\/images\/search.*?text=/, mark: 'YandexImage' },
     { name: 'Bilibili', url: 'https://search.bilibili.com/all?keyword=', key: 'keyword', match: /search\.bilibili\.com\/all.*?keyword=/, mark: 'Bilibili' },
@@ -250,6 +250,12 @@
     var d = document.createElement('div');
     d.innerHTML = html;
     return d.firstChild;
+  }
+
+  function buildSearchUrl(engine, keyword) {
+    var url = engine.url + encodeURIComponent(keyword);
+    if (engine.suffix) url += engine.suffix;
+    return url;
   }
 
   // ─── 通用拖拽管理器 ───
@@ -444,7 +450,7 @@
       if (!eng) return;
       var isActive = eng.match.test(href);
       var a = el('a', 'punk-eng' + (isActive ? ' punk-eng-active' : ''));
-      a.href = eng.url + encodeURIComponent(keyword);
+      a.href = buildSearchUrl(eng, keyword);
       a.target = '_blank';
       a.textContent = eng.name;
       wrap.appendChild(a);
@@ -727,7 +733,7 @@
         b.addEventListener('mouseenter', function () { selectedEngine = item; });
         b.addEventListener('click', function () {
           var kw = input.value.trim();
-          if (kw) window.open(item.url + encodeURIComponent(kw), '_blank');
+          if (kw) window.open(buildSearchUrl(item, kw), '_blank');
         });
         grid.appendChild(b);
       });
@@ -816,7 +822,7 @@
     if (presetEngine) {
       var kw = input.value.trim();
       if (kw) {
-        window.open(presetEngine.url + encodeURIComponent(kw), '_blank');
+        window.open(buildSearchUrl(presetEngine, kw), '_blank');
         div.remove();
         return;
       }
@@ -827,7 +833,7 @@
         var k = input.value.trim();
         if (!k) return;
         if (selectedEngine) {
-          window.open(selectedEngine.url + encodeURIComponent(k), '_blank');
+          window.open(buildSearchUrl(selectedEngine, k), '_blank');
         } else {
           var firstBtn = div.querySelector('.punk-grid-btn');
           if (firstBtn) firstBtn.click();
