@@ -93,7 +93,7 @@
               if (ALLOWED_ATTRS.indexOf(attrName) === -1) {
                 child.removeAttribute(attrs[k].name);
               } else if (attrName === 'href' || attrName === 'src') {
-                var val = attrs[k].value.trim().toLowerCase();
+                var val = attrs[k].value.replace(/[\p{C}]/gu, '').trim().toLowerCase();
                 if (val.indexOf('javascript:') === 0 || val.indexOf('data:') === 0 || val.indexOf('vbscript:') === 0) {
                   child.removeAttribute(attrs[k].name);
                 }

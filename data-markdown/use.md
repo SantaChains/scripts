@@ -28,6 +28,15 @@
 - 链接（自动新窗口打开）
 - 简单换行
 
+## 安全防护
+
+渲染后的 HTML 经过 sanitize 处理：
+
+- **标签白名单**：仅允许 `h1-h6`、`p`、`a`、`img`、`table`、`code`、`pre` 等安全标签
+- **属性白名单**：仅允许 `href`、`src`、`alt`、`class`、`id` 等必要属性
+- **协议拦截**：`href`/`src` 中的 `javascript:`、`data:`、`vbscript:` 协议会被移除（含控制字符注入变体）
+- 非白名单标签会被剥离标签但保留内容，非白名单属性直接移除
+
 ## 安装
 
 [Tampermonkey 安装](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/data-markdown/user.js)

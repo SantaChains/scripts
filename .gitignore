@@ -62,3 +62,5 @@ build/
 .env.local
 .env.*.local
 config.local.js
+
+.trae/
