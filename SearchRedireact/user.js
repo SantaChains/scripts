@@ -9,8 +9,8 @@
 // @grant        GM_getValue
 // @noframes
 // @run-at       document-idle
-// @updateURL    https://cdn.jsdelivr.net/gh/SantaChains/scripts@latest/SearchRedireact/meta.js
-// @downloadURL  https://cdn.jsdelivr.net/gh/SantaChains/scripts@latest/SearchRedireact/user.js
+// @updateURL    https://raw.githubusercontent.com/SantaChains/scripts/main/SearchRedireact/meta.js
+// @downloadURL  https://raw.githubusercontent.com/SantaChains/scripts/main/SearchRedireact/user.js
 // @supportURL   https://github.com/SantaChains/scripts/issues
 // ==/UserScript==
 
