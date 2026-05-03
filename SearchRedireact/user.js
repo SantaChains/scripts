@@ -290,24 +290,20 @@
       var startY = 0;
       var elementStartX = 0;
       var elementStartY = 0;
-      var rafId = null;
       var clickStartTime = 0;
       var mouseMoveHandler = null;
       var mouseUpHandler = null;
 
       function onMouseMove(e) {
-        if (!isDragging || rafId) return;
-        rafId = requestAnimationFrame(function () {
-          var deltaX = e.clientX - startX;
-          var deltaY = e.clientY - startY;
-          if (Math.abs(deltaX) > config.threshold || Math.abs(deltaY) > config.threshold) {
-            hasDragged = true;
-          }
-          if (config.onMove) {
-            config.onMove(e, deltaX, deltaY, elementStartX, elementStartY);
-          }
-          rafId = null;
-        });
+        if (!isDragging) return;
+        var deltaX = e.clientX - startX;
+        var deltaY = e.clientY - startY;
+        if (Math.abs(deltaX) > config.threshold || Math.abs(deltaY) > config.threshold) {
+          hasDragged = true;
+        }
+        if (config.onMove) {
+          config.onMove(e, deltaX, deltaY, elementStartX, elementStartY);
+        }
       }
 
       function onMouseUp() {
@@ -317,7 +313,6 @@
         element.style.cursor = 'move';
         document.removeEventListener('mousemove', mouseMoveHandler);
         document.removeEventListener('mouseup', mouseUpHandler);
-        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
         if (config.onEnd) config.onEnd(hasDragged);
         if (config.savePosition && hasDragged) {
           config.savePosition();
@@ -332,7 +327,7 @@
         startY = e.clientY;
         var initialPos = config.getInitialPosition ? config.getInitialPosition() : { x: 0, y: 0 };
         elementStartX = initialPos.x;
-        elementStartY = config.useBottom ? initialPos.y : initialPos.y;
+        elementStartY = initialPos.y;
         element.classList.add('punk-dragging');
         element.style.cursor = 'grabbing';
         mouseMoveHandler = onMouseMove;
@@ -352,7 +347,6 @@
           element.removeEventListener('mousedown', onMouseDown);
           document.removeEventListener('mousemove', mouseMoveHandler);
           document.removeEventListener('mouseup', mouseUpHandler);
-          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
           var idx = DragManager.activeHandlers.indexOf(handler);
           if (idx > -1) DragManager.activeHandlers.splice(idx, 1);
         }
@@ -486,6 +480,9 @@
     cfgBtn.appendChild(svgEl(ICON.settings));
     cfgBtn.title = '设置';
     cfgBtn.addEventListener('click', function () {
+      isExpanded = false;
+      panel.style.display = 'none';
+      GM_setValue('punk_search_expanded', false);
       openQuickSearch();
       setTimeout(function () {
         var tabs = document.querySelectorAll('#punk-qs .punk-tab');
