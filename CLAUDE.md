@@ -12,16 +12,16 @@ Tampermonkey 油猴用户脚本「搜索引擎一键跳转」(Search Engine Quic
 
 **核心模块** (`SearchRedireact/user.js`):
 
-- `searchEngines` — 搜索引擎配置数组，每个引擎定义 `searchUrl`、`searchkeyName`、`matchUrl`（正则匹配当前页面）、`mark`（唯一标识）
-- `quickSearchConfig` — 快捷搜索分类配置（综合/学术/社交/图片/壁纸/视频/购物/开发）
-- 预设标记常量 (`punkDeafultMark` 等) — 用 `-` 分隔的 mark 字符串，控制默认启用哪些引擎
-- `getSearchKeyword()` — 从 URL 参数提取搜索关键词
+- `ENGINES` — 搜索引擎配置数组，每个引擎定义 `url`、`key`、`match`（正则匹配当前页面）、`mark`（唯一标识）
+- `QUICK_TABS` — 快捷搜索分类配置（综合/学术/社交/图片/壁纸/视频/购物/开发）
+- `PRESETS` — 预设标记对象，用 `-` 分隔的 mark 字符串，控制默认启用哪些引擎
+- `getKeyword()` — 从 URL 参数提取搜索关键词
 - `isSearchPage()` — 判断当前页面是否为搜索结果页
-- `createSearchButtons()` — 搜索页的引擎跳转面板（可拖拽、可收起）
-- `createQuickSearch()` — 非搜索页的浮动快捷搜索按钮
-- `showQuickSearch()` — 「星际搜索」全屏面板（含分类标签和设置）
+- `initSearchPage()` — 搜索页的引擎跳转面板（可拖拽、可收起）
+- `initQuickSearch()` — 非搜索页的浮动快捷搜索按钮
+- `openQuickSearch()` — 「星际搜索」全屏面板（含分类标签和设置）
 
-**UI 主题**: 紫蓝渐变 (`#667eea` → `#764ba2`)，所有样式内联。
+**UI 主题**: Nerd Dark（Tokyo Night × Dracula），深色底 `#1a1b26`，终端绿 `#9ece6a`，赛博青 `#7dcfff`，紫粉 `#bb9af7`，等宽字体栈，所有样式内联。
 
 **持久化键** (`GM_setValue`):
 - `punk_setup_search` — 用户选择的引擎列表（`-` 分隔）
@@ -33,7 +33,7 @@ Tampermonkey 油猴用户脚本「搜索引擎一键跳转」(Search Engine Quic
 
 脚本直接在 Tampermonkey 中运行，无构建/测试流程。编辑 `SearchRedireact/user.js` 后在 Tampermonkey 中刷新即可生效。
 
-`SearchRedireact/meta.js` 目前为空文件。
+`SearchRedireact/meta.js` 仅含元数据块，用于 Tampermonkey 版本更新检查。
 
 ## Adding a New Search Engine
 

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         搜索引擎一键跳转
 // @namespace    http://tampermonkey.net/
-// @version      5.0
+// @version      6.0
 // @description  在搜索结果页面添加其他搜索引擎的快捷跳转按钮，支持自定义搜索引擎
 // @author       Punkjet & SantaChains
 // @match        *://*/*
@@ -17,30 +17,30 @@
 (function () {
   'use strict';
 
-  // ─── 配色系统（Glassmorphism + Violet Accent）───
+  // ─── 配色系统（Nerd Dark — Tokyo Night × Dracula）───
   var C = {
-    grad: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 50%, #4C1D95 100%)',
-    gradHover: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 50%, #5B21B6 100%)',
-    primary: '#7C3AED',
-    primaryHover: '#6D28D9',
-    cta: '#06B6D4',
-    ctaHover: '#0891B2',
-    glass: 'rgba(255,255,255,0.72)',
-    glassBorder: 'rgba(255,255,255,0.35)',
-    glassDark: 'rgba(255,255,255,0.88)',
-    surface: 'rgba(245,243,255,0.85)',
-    bgHover: 'rgba(124,58,237,0.08)',
-    bgActive: 'rgba(124,58,237,0.14)',
-    text: '#1E1B4B',
-    textMuted: '#64748B',
-    shadow1: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
-    shadow2: '0 4px 12px rgba(124,58,237,0.10), 0 2px 4px rgba(0,0,0,0.04)',
-    shadow3: '0 12px 32px rgba(124,58,237,0.15), 0 4px 8px rgba(0,0,0,0.06)',
-    shadow4: '0 24px 64px rgba(124,58,237,0.18), 0 8px 16px rgba(0,0,0,0.08)',
+    grad: 'linear-gradient(135deg, #1a1b26 0%, #24283b 50%, #1a1b26 100%)',
+    gradHover: 'linear-gradient(135deg, #24283b 0%, #2f3347 50%, #24283b 100%)',
+    primary: '#9ece6a',
+    primaryHover: '#73daca',
+    cta: '#bb9af7',
+    ctaHover: '#c0caf5',
+    glass: 'rgba(26,27,38,0.92)',
+    glassBorder: 'rgba(86,95,137,0.25)',
+    glassDark: 'rgba(36,40,59,0.88)',
+    surface: 'rgba(47,51,71,0.7)',
+    bgHover: 'rgba(158,206,106,0.08)',
+    bgActive: 'rgba(158,206,106,0.15)',
+    text: '#c0caf5',
+    textMuted: '#565f89',
+    shadow1: '0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)',
+    shadow2: '0 4px 12px rgba(0,0,0,0.35), 0 2px 4px rgba(158,206,106,0.06)',
+    shadow3: '0 12px 32px rgba(0,0,0,0.45), 0 4px 8px rgba(158,206,106,0.08)',
+    shadow4: '0 24px 64px rgba(0,0,0,0.55), 0 8px 16px rgba(158,206,106,0.1)',
     radius: '12px',
     radiusSm: '8px',
     radiusFull: '9999px',
-    font: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif',
+    font: '"JetBrains Mono","Fira Code","Cascadia Code",Consolas,"Courier New",monospace',
   };
 
   // ─── SVG 图标（Lucide 风格，24x24 viewBox）───
@@ -284,8 +284,8 @@
       '.punk-save:hover{background:' + C.primaryHover + ';box-shadow:0 4px 12px rgba(124,58,237,.25)}',
 
       // 关闭按钮
-      '.punk-close{width:24px;height:24px;background:rgba(0,0,0,.05);border:none;border-radius:' + C.radiusFull + ';cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s ease;color:' + C.textMuted + '}',
-      '.punk-close:hover{background:rgba(0,0,0,.1);color:' + C.text + '}',
+      '.punk-close{width:24px;height:24px;background:rgba(86,95,137,.2);border:none;border-radius:' + C.radiusFull + ';cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s ease;color:' + C.textMuted + '}',
+      '.punk-close:hover{background:rgba(158,206,106,.2);color:' + C.primary + '}',
 
       // 触发按钮 hover（非拖拽时）
       '.punk-trigger{transition:transform .18s ease,box-shadow .18s ease}',
@@ -509,7 +509,7 @@
 
     var title = el('div', null,
       'display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:' + C.text + ';' +
-      'margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(0,0,0,.06);'
+      'margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid ' + C.glassBorder + ';'
     );
     title.appendChild(svgEl(ICON.star));
     title.appendChild(document.createTextNode('搜索引擎跳转'));
@@ -567,14 +567,14 @@
     );
 
     var closeBtn = el('button', null,
-      'position:absolute;top:12px;right:16px;width:32px;height:32px;background:rgba(255,255,255,.15);' +
-      'border:none;border-radius:50%;cursor:pointer;color:#fff;' +
+      'position:absolute;top:12px;right:16px;width:32px;height:32px;background:rgba(86,95,137,.2);' +
+      'border:none;border-radius:50%;cursor:pointer;color:' + C.text + ';' +
       'transition:background .15s;display:flex;align-items:center;justify-content:center;'
     );
     closeBtn.appendChild(svgEl(ICON.close));
     closeBtn.title = '关闭 (ESC)';
-    closeBtn.addEventListener('mouseenter', function () { closeBtn.style.background = 'rgba(255,255,255,.3)'; });
-    closeBtn.addEventListener('mouseleave', function () { closeBtn.style.background = 'rgba(255,255,255,.15)'; });
+    closeBtn.addEventListener('mouseenter', function () { closeBtn.style.background = 'rgba(158,206,106,.25)'; });
+    closeBtn.addEventListener('mouseleave', function () { closeBtn.style.background = 'rgba(86,95,137,.2)'; });
     closeBtn.addEventListener('click', function () { div.remove(); });
     header.appendChild(closeBtn);
 
@@ -585,25 +585,25 @@
 
     var inputWrap = el('div', null, 'position:relative;max-width:380px;margin:0 auto;');
     var input = el('input', null,
-      'width:100%;padding:12px 40px 12px 18px;border:none;border-radius:24px;font-size:14px;' +
-      'outline:none;background:rgba(255,255,255,.92);color:#1F2937;' +
-      'box-shadow:0 4px 12px rgba(0,0,0,.1);box-sizing:border-box;' +
+      'width:100%;padding:12px 40px 12px 18px;border:1px solid ' + C.glassBorder + ';border-radius:24px;font-size:14px;' +
+      'outline:none;background:rgba(36,40,59,0.9);color:' + C.text + ';' +
+      'box-shadow:0 4px 12px rgba(0,0,0,.3);box-sizing:border-box;' +
       'transition:box-shadow .2s;'
     );
     input.type = 'text';
     input.placeholder = '探索宇宙中的知识...';
     input.id = 'punk-qs-input';
-    input.addEventListener('focus', function () { input.style.boxShadow = '0 0 0 3px rgba(124,58,237,.2), 0 4px 12px rgba(0,0,0,.1)'; });
-    input.addEventListener('blur', function () { input.style.boxShadow = '0 4px 12px rgba(0,0,0,.1)'; });
+    input.addEventListener('focus', function () { input.style.boxShadow = '0 0 0 3px rgba(158,206,106,.2), 0 4px 12px rgba(0,0,0,.3)'; });
+    input.addEventListener('blur', function () { input.style.boxShadow = '0 4px 12px rgba(0,0,0,.3)'; });
 
     var clearBtn = el('button', null,
       'position:absolute;right:12px;top:50%;transform:translateY(-50%);width:22px;height:22px;' +
-      'background:rgba(0,0,0,.06);border:none;border-radius:50%;cursor:pointer;' +
+      'background:rgba(86,95,137,.2);border:none;border-radius:50%;cursor:pointer;' +
       'color:' + C.textMuted + ';transition:background .15s;display:flex;align-items:center;justify-content:center;'
     );
     clearBtn.appendChild(svgEl(ICON.close));
-    clearBtn.addEventListener('mouseenter', function () { clearBtn.style.background = 'rgba(0,0,0,.12)'; });
-    clearBtn.addEventListener('mouseleave', function () { clearBtn.style.background = 'rgba(0,0,0,.06)'; });
+    clearBtn.addEventListener('mouseenter', function () { clearBtn.style.background = 'rgba(86,95,137,.35)'; });
+    clearBtn.addEventListener('mouseleave', function () { clearBtn.style.background = 'rgba(86,95,137,.2)'; });
     clearBtn.addEventListener('click', function () { input.value = ''; input.focus(); });
     inputWrap.appendChild(input);
     inputWrap.appendChild(clearBtn);
@@ -617,7 +617,7 @@
 
     // 标签栏
     var tabBar = el('div', null,
-      'display:flex;background:' + C.glassDark + ';border-bottom:1px solid rgba(0,0,0,.06);' +
+      'display:flex;background:' + C.glassDark + ';border-bottom:1px solid ' + C.glassBorder + ';' +
       'overflow-x:auto;scrollbar-width:none;'
     );
     var tabBody = el('div', null, 'padding:16px 20px;');
@@ -660,7 +660,7 @@
       var enabled = getEnabledMarks();
 
       var presetBox = el('div', null,
-        'margin-bottom:16px;padding:12px;background:' + C.glassDark + ';border-radius:' + C.radius + ';border:1px solid rgba(0,0,0,.04);'
+        'margin-bottom:16px;padding:12px;background:' + C.glassDark + ';border-radius:' + C.radius + ';border:1px solid ' + C.glassBorder + ';'
       );
       var presetTitle = el('h4', null, 'margin:0 0 10px 0;color:' + C.text + ';font-size:13px;font-weight:600;');
       presetTitle.textContent = '快速预设';
@@ -694,7 +694,7 @@
       var grid = el('div', null,
         'display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;' +
         'max-height:200px;overflow-y:auto;padding:10px;background:' + C.glassDark + ';' +
-        'border:1px solid rgba(0,0,0,.04);border-radius:' + C.radius + ';'
+        'border:1px solid ' + C.glassBorder + ';border-radius:' + C.radius + ';'
       );
 
       ENGINES.forEach(function (eng) {
