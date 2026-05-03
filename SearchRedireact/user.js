@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         搜索引擎一键跳转
 // @namespace    http://tampermonkey.net/
-// @version      4.0
+// @version      5.0
 // @description  在搜索结果页面添加其他搜索引擎的快捷跳转按钮，支持自定义搜索引擎
 // @author       Punkjet & SantaChains
 // @match        *://*/*
@@ -17,22 +17,43 @@
 (function () {
   'use strict';
 
-  // ─── 配色常量 ───
-  const THEME = {
-    grad: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    purple: '#8B5CF6',
-    purpleDark: '#7C3AED',
-    purpleText: '#5B21B6',
-    bgLight: '#F5F3FF',
-    bgHover: '#EDE9FE',
-    border: '#E0E7FF',
-    borderLight: '#DDD6FE',
-    textDark: '#1E1B4B',
-    textMuted: '#6B7280',
+  // ─── 配色系统（Glassmorphism + Violet Accent）───
+  var C = {
+    grad: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 50%, #4C1D95 100%)',
+    gradHover: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 50%, #5B21B6 100%)',
+    primary: '#7C3AED',
+    primaryHover: '#6D28D9',
+    cta: '#06B6D4',
+    ctaHover: '#0891B2',
+    glass: 'rgba(255,255,255,0.72)',
+    glassBorder: 'rgba(255,255,255,0.35)',
+    glassDark: 'rgba(255,255,255,0.88)',
+    surface: 'rgba(245,243,255,0.85)',
+    bgHover: 'rgba(124,58,237,0.08)',
+    bgActive: 'rgba(124,58,237,0.14)',
+    text: '#1E1B4B',
+    textMuted: '#64748B',
+    shadow1: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
+    shadow2: '0 4px 12px rgba(124,58,237,0.10), 0 2px 4px rgba(0,0,0,0.04)',
+    shadow3: '0 12px 32px rgba(124,58,237,0.15), 0 4px 8px rgba(0,0,0,0.06)',
+    shadow4: '0 24px 64px rgba(124,58,237,0.18), 0 8px 16px rgba(0,0,0,0.08)',
+    radius: '12px',
+    radiusSm: '8px',
+    radiusFull: '9999px',
+    font: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif',
+  };
+
+  // ─── SVG 图标（Lucide 风格，24x24 viewBox）───
+  var ICON = {
+    star: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
+    planet: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="8"/><ellipse cx="12" cy="12" rx="3" ry="8" transform="rotate(60 12 12)"/></svg>',
+    settings: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
+    close: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    search: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
   };
 
   // ─── 预设标记 ───
-  const PRESETS = {
+  var PRESETS = {
     default: 'Google-Github-Steam-Bing-MitaAI-GoogleScholar-Searx-Bilibili-Zhihu-Weibo-Douban-Quark-Sougou-SougouWeixin-360ai-wallpaper',
     international: 'GooglePatents-Bing-Yahoo-Yandex-DuckDuckGo-YouTube-Wikipedia-Instagram-Qwant-Tiktok',
     image: 'SougouImage-Google-YandexImage-wallpaper-Pixabay-Pexels',
@@ -41,7 +62,7 @@
   };
 
   // ─── 搜索引擎配置 ───
-  const ENGINES = [
+  var ENGINES = [
     { name: '百度', url: 'https://www.baidu.com/s?wd=', key: 'wd', match: /baidu\.com\/s.*?wd=/, mark: 'Baidu' },
     { name: '必应', url: 'https://www.bing.com/search?q=', key: 'q', match: /bing\.com\/search.*?q=/, mark: 'Bing' },
     { name: '360搜索', url: 'https://www.so.com/s?q=', key: 'q', match: /so\.com\/s.*?q=/, mark: '360' },
@@ -97,8 +118,7 @@
     { name: 'Bilibili', url: 'https://search.bilibili.com/all?keyword=', key: 'keyword', match: /search\.bilibili\.com\/all.*?keyword=/, mark: 'Bilibili' },
   ];
 
-  // ─── 快捷搜索分类 ───
-  const QUICK_TABS = [
+  var QUICK_TABS = [
     { tab: '综合', list: [
       { name: '百度', url: 'https://www.baidu.com/s?wd=' },
       { name: '谷歌', url: 'https://www.google.com/search?q=' },
@@ -173,144 +193,187 @@
     ]},
   ];
 
-  // ─── 常用搜索参数名（优先级从高到低）───
-  const SEARCH_PARAMS = ['q', 'wd', 'query', 'keyword', 'search', 'term', 'kw', 'text', 'eingabe', 'p', 'MT', 'search_query', 'searchtext'];
+  var SEARCH_PARAMS = ['q', 'wd', 'query', 'keyword', 'search', 'term', 'kw', 'text', 'eingabe', 'p', 'MT', 'search_query', 'searchtext'];
 
   // ─── 工具函数 ───
 
   function getKeyword() {
-    const params = new URLSearchParams(window.location.search);
-    for (const p of SEARCH_PARAMS) {
-      const v = params.get(p);
+    var params = new URLSearchParams(window.location.search);
+    for (var i = 0; i < SEARCH_PARAMS.length; i++) {
+      var v = params.get(SEARCH_PARAMS[i]);
       if (v) return decodeURIComponent(v);
     }
-    const tag = window.location.href.match(/instagram\.com\/explore\/tags\/([^/?]+)/);
+    var tag = window.location.href.match(/instagram\.com\/explore\/tags\/([^/?]+)/);
     return tag ? decodeURIComponent(tag[1]) : '';
   }
 
   function isSearchPage() {
-    const href = window.location.href;
-    const params = new URLSearchParams(window.location.search);
-    // 快速检查：至少有一个搜索参数
-    let hasParam = false;
-    for (const p of SEARCH_PARAMS) {
-      if (params.has(p)) { hasParam = true; break; }
+    var href = window.location.href;
+    var params = new URLSearchParams(window.location.search);
+    var hasParam = false;
+    for (var i = 0; i < SEARCH_PARAMS.length; i++) {
+      if (params.has(SEARCH_PARAMS[i])) { hasParam = true; break; }
     }
-    if (!hasParam && !href.includes('instagram.com/explore/tags/')) return false;
-    // 匹配引擎
-    return ENGINES.some(e => e.match.test(href));
+    if (!hasParam && href.indexOf('instagram.com/explore/tags/') === -1) return false;
+    return ENGINES.some(function (e) { return e.match.test(href); });
   }
 
   function getEnabledMarks() {
     return GM_getValue('punk_setup_search', PRESETS.default).split('-');
   }
 
-  function createEl(tag, styles, attrs) {
-    const el = document.createElement(tag);
-    if (styles) el.style.cssText = styles;
-    if (attrs) Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
-    return el;
+  function el(tag, cls, styles, attrs) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (styles) e.style.cssText = styles;
+    if (attrs) Object.keys(attrs).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+    return e;
   }
 
-  // 内联 toast 替代 alert()
-  function showToast(msg, duration) {
-    duration = duration || 2000;
-    const t = createEl('div',
-      'position:fixed;top:20px;left:50%;transform:translateX(-50%);' +
-      'padding:10px 24px;background:' + THEME.purple + ';color:#fff;' +
-      'border-radius:8px;font-size:14px;z-index:10000010;' +
-      'box-shadow:0 4px 16px rgba(102,126,234,0.4);' +
-      'transition:opacity 0.3s;opacity:0;'
+  function svgEl(html) {
+    var d = document.createElement('div');
+    d.innerHTML = html;
+    return d.firstChild;
+  }
+
+  // ─── 单例 CSS 注入（Glassmorphism + 交互 + 无障碍）───
+  function injectCSS() {
+    if (document.getElementById('punk-css')) return;
+    var s = document.createElement('style');
+    s.id = 'punk-css';
+    s.textContent = [
+      // 动画
+      '@keyframes punkIn{from{opacity:0;transform:translate(-50%,-50%) scale(.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}',
+      '@keyframes punkSlide{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}',
+      '@keyframes punkToast{from{opacity:0;transform:translateX(-50%) translateY(-12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}',
+
+      // 无障碍：减弱动画
+      '@media(prefers-reduced-motion:reduce){',
+      '.punk-anim{animation:none!important;transition:none!important}',
+      '}',
+
+      // 通用按钮样式（CSS :hover 替代 JS 监听器）
+      '.punk-btn{cursor:pointer;transition:background .18s ease,color .18s ease,border-color .18s ease,transform .15s ease,box-shadow .15s ease}',
+      '.punk-btn:focus-visible{outline:2px solid ' + C.primary + ';outline-offset:2px}',
+
+      // 引擎按钮（搜索面板内）
+      '.punk-eng{display:inline-block;padding:5px 10px;margin:2px;text-decoration:none;border-radius:' + C.radiusSm + ';font-size:11px;font-weight:500;white-space:nowrap;cursor:pointer;transition:background .18s ease,color .18s ease,box-shadow .18s ease}',
+      '.punk-eng:not(.punk-eng-active){background:' + C.surface + ';color:' + C.text + '}',
+      '.punk-eng:not(.punk-eng-active):hover{background:' + C.bgActive + ';color:' + C.primary + ';box-shadow:' + C.shadow1 + '}',
+      '.punk-eng-active{background:' + C.grad + ';color:#fff;box-shadow:0 2px 8px rgba(124,58,237,.25)}',
+
+      // 弹出按钮（跳转面板内）
+      '.punk-pop-btn{padding:6px 12px;background:' + C.glass + ';color:' + C.text + ';border:1px solid ' + C.glassBorder + ';border-radius:' + C.radiusSm + ';font-size:12px;font-weight:500;cursor:pointer;transition:all .18s ease;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}',
+      '.punk-pop-btn:hover{background:' + C.primary + ';color:#fff;border-color:' + C.primary + ';box-shadow:0 4px 12px rgba(124,58,237,.2)}',
+
+      // 标签按钮
+      '.punk-tab{padding:10px 18px;border:none;background:transparent;color:' + C.textMuted + ';cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;font-size:13px;font-weight:500;transition:all .18s ease}',
+      '.punk-tab:hover{background:' + C.surface + '}',
+      '.punk-tab-active{background:' + C.surface + '!important;color:' + C.primary + '!important;border-bottom-color:' + C.primary + '!important;font-weight:600!important}',
+
+      // 网格按钮（星际搜索内）
+      '.punk-grid-btn{padding:8px 12px;border:1px solid ' + C.glassBorder + ';background:' + C.glassDark + ';border-radius:' + C.radiusSm + ';cursor:pointer;font-size:12px;font-weight:500;color:' + C.text + ';transition:all .18s ease;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}',
+      '.punk-grid-btn:hover{background:' + C.primary + ';color:#fff;border-color:' + C.primary + ';box-shadow:0 4px 12px rgba(124,58,237,.2);transform:translateY(-1px)}',
+
+      // 预设按钮
+      '.punk-preset{flex:1;min-width:70px;padding:6px 10px;background:' + C.cta + ';border:none;color:#fff;border-radius:' + C.radiusSm + ';cursor:pointer;font-size:12px;font-weight:500;transition:all .18s ease}',
+      '.punk-preset:hover{background:' + C.ctaHover + ';box-shadow:0 4px 12px rgba(6,182,212,.25)}',
+
+      // 保存按钮
+      '.punk-save{margin-top:12px;padding:8px 20px;background:' + C.primary + ';color:#fff;border:none;border-radius:' + C.radiusSm + ';cursor:pointer;font-size:13px;font-weight:500;transition:all .18s ease}',
+      '.punk-save:hover{background:' + C.primaryHover + ';box-shadow:0 4px 12px rgba(124,58,237,.25)}',
+
+      // 关闭按钮
+      '.punk-close{width:24px;height:24px;background:rgba(0,0,0,.05);border:none;border-radius:' + C.radiusFull + ';cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s ease;color:' + C.textMuted + '}',
+      '.punk-close:hover{background:rgba(0,0,0,.1);color:' + C.text + '}',
+
+      // 触发按钮 hover（非拖拽时）
+      '.punk-trigger{transition:transform .18s ease,box-shadow .18s ease}',
+      '.punk-trigger:hover:not(.punk-dragging){transform:scale(1.08);box-shadow:0 12px 32px rgba(124,58,237,.35)}',
+
+      // 设置标签内 label hover
+      '.punk-label{display:flex;align-items:center;padding:5px 6px;cursor:pointer;border-radius:' + C.radiusSm + ';transition:background .18s ease;background:' + C.surface + '}',
+      '.punk-label:hover{background:' + C.bgActive + '}',
+    ].join('\n');
+    document.head.appendChild(s);
+  }
+
+  // Toast 通知
+  function showToast(msg) {
+    var t = el('div', 'punk-anim',
+      'position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-12px);' +
+      'padding:10px 24px;background:' + C.primary + ';color:#fff;border-radius:' + C.radius + ';' +
+      'font-size:14px;z-index:10000010;box-shadow:' + C.shadow3 + ';' +
+      'font-family:' + C.font + ';transition:opacity .25s,transform .25s;opacity:0;'
     );
     t.textContent = msg;
     document.body.appendChild(t);
-    requestAnimationFrame(() => { t.style.opacity = '1'; });
-    setTimeout(() => {
+    requestAnimationFrame(function () { t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)'; });
+    setTimeout(function () {
       t.style.opacity = '0';
-      setTimeout(() => t.remove(), 300);
-    }, duration);
-  }
-
-  // ─── CSS 动画（单例注入）───
-  function ensureAnimations() {
-    if (document.getElementById('punk-css')) return;
-    const s = createEl('style', null, { id: 'punk-css' });
-    s.textContent =
-      '@keyframes punkAppear{from{opacity:0;transform:translate(-50%,-50%) scale(.85)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}' +
-      '@keyframes punkFadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}';
-    document.head.appendChild(s);
+      t.style.transform = 'translateX(-50%) translateY(-12px)';
+      setTimeout(function () { t.remove(); }, 250);
+    }, 2000);
   }
 
   // ─── 搜索页：引擎跳转面板 ───
   function initSearchPage() {
-    const keyword = getKeyword();
+    var keyword = getKeyword();
     if (!keyword) return;
 
-    const enabled = getEnabledMarks();
-    const href = window.location.href;
-    const pos = GM_getValue('punk_search_position', { x: 10, y: 10 });
-    let expanded = GM_getValue('punk_search_expanded', false);
+    var enabled = getEnabledMarks();
+    var href = window.location.href;
+    var pos = GM_getValue('punk_search_position', { x: 10, y: 10 });
+    var expanded = GM_getValue('punk_search_expanded', false);
 
     // 主容器
-    const box = createEl('div',
-      'position:fixed;top:' + pos.y + 'px;left:' + pos.x + 'px;z-index:9999999;font-family:Arial,sans-serif;'
+    var box = el('div', null,
+      'position:fixed;top:' + pos.y + 'px;left:' + pos.x + 'px;z-index:9999999;font-family:' + C.font + ';contain:layout;'
     );
 
     // 切换按钮
-    const btn = createEl('button',
-      'padding:8px 10px;background:' + THEME.grad + ';color:#fff;border:none;' +
-      'border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;' +
-      'box-shadow:0 4px 12px rgba(102,126,234,.35);transition:transform .15s,box-shadow .15s;'
+    var btn = el('button', 'punk-anim',
+      'padding:8px 10px;background:' + C.grad + ';color:#fff;border:none;' +
+      'border-radius:' + C.radiusSm + ';cursor:pointer;font-size:14px;font-weight:600;' +
+      'box-shadow:' + C.shadow2 + ';transition:transform .18s ease,box-shadow .18s ease;'
     );
-    btn.textContent = '⭐';
+    btn.appendChild(svgEl(ICON.star));
 
-    // 面板
-    const panel = createEl('div',
-      'position:absolute;top:38px;left:0;background:#fff;border:1px solid ' + THEME.border + ';' +
-      'border-radius:10px;padding:12px;box-shadow:0 10px 25px -5px rgba(102,126,234,.25),' +
-      '0 8px 10px -6px rgba(0,0,0,.1);min-width:320px;max-width:90vw;display:' + (expanded ? 'block' : 'none') + ';'
+    // Glassmorphism 面板
+    var panel = el('div', 'punk-anim',
+      'position:absolute;top:40px;left:0;' +
+      'background:' + C.glass + ';backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);' +
+      'border:1px solid ' + C.glassBorder + ';border-radius:' + C.radius + ';padding:12px;' +
+      'box-shadow:' + C.shadow3 + ';min-width:320px;max-width:90vw;' +
+      'display:' + (expanded ? 'block' : 'none') + ';'
     );
 
     // 引擎按钮容器
-    const wrap = createEl('div', 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;');
+    var wrap = el('div', null, 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;');
 
     enabled.forEach(function (mark) {
       var eng = ENGINES.find(function (e) { return e.mark === mark; });
       if (!eng) return;
-      var isCurrent = eng.match.test(href);
-      var a = createEl('a',
-        'display:inline-block;padding:5px 10px;margin:2px;text-decoration:none;' +
-        'border-radius:6px;font-size:11px;font-weight:500;white-space:nowrap;' +
-        'transition:background .12s,color .12s;cursor:pointer;' +
-        'background:' + (isCurrent ? THEME.grad : THEME.bgLight) + ';' +
-        'color:' + (isCurrent ? '#fff' : THEME.purpleText) + ';' +
-        'box-shadow:' + (isCurrent ? '0 2px 6px rgba(102,126,234,.3)' : 'none') + ';'
-      );
+      var isActive = eng.match.test(href);
+      var a = el('a', 'punk-eng' + (isActive ? ' punk-eng-active' : ''));
       a.href = eng.url + encodeURIComponent(keyword);
       a.target = '_blank';
       a.textContent = eng.name;
-      if (!isCurrent) {
-        a.addEventListener('mouseenter', function () { a.style.background = THEME.bgHover; a.style.color = THEME.purpleDark; });
-        a.addEventListener('mouseleave', function () { a.style.background = THEME.bgLight; a.style.color = THEME.purpleText; });
-      }
       wrap.appendChild(a);
     });
 
     // 设置按钮
-    var cfgBtn = createEl('button',
-      'padding:5px 8px;margin:2px;background:' + THEME.purple + ';color:#fff;border:none;' +
-      'border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap;' +
-      'transition:background .12s;'
+    var cfgBtn = el('button', 'punk-btn',
+      'padding:5px 8px;margin:2px;background:' + C.cta + ';color:#fff;border:none;' +
+      'border-radius:' + C.radiusSm + ';cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap;'
     );
-    cfgBtn.textContent = '⚙️';
+    cfgBtn.appendChild(svgEl(ICON.settings));
     cfgBtn.title = '设置';
-    cfgBtn.addEventListener('mouseenter', function () { cfgBtn.style.background = THEME.purpleDark; });
-    cfgBtn.addEventListener('mouseleave', function () { cfgBtn.style.background = THEME.purple; });
     cfgBtn.addEventListener('click', function () {
       openQuickSearch();
       setTimeout(function () {
-        var tabs = document.querySelectorAll('#punk-qs button');
-        tabs.forEach(function (t) { if (t.textContent.includes('设置')) t.click(); });
+        var tabs = document.querySelectorAll('#punk-qs .punk-tab');
+        tabs.forEach(function (t) { if (t.textContent.indexOf('设置') !== -1) t.click(); });
       }, 80);
     });
     wrap.appendChild(cfgBtn);
@@ -319,37 +382,27 @@
     box.appendChild(panel);
 
     // 展开/收起
+    var isExpanded = expanded;
     btn.addEventListener('click', function () {
-      expanded = !expanded;
-      panel.style.display = expanded ? 'block' : 'none';
-      GM_setValue('punk_search_expanded', expanded);
+      isExpanded = !isExpanded;
+      panel.style.display = isExpanded ? 'block' : 'none';
+      GM_setValue('punk_search_expanded', isExpanded);
     });
 
-    // 悬停（非拖拽时）
-    var isDrag = false;
-    btn.addEventListener('mouseenter', function () {
-      if (!isDrag) { btn.style.transform = 'scale(1.05)'; btn.style.boxShadow = '0 6px 16px rgba(102,126,234,.45)'; }
-    });
-    btn.addEventListener('mouseleave', function () {
-      if (!isDrag) { btn.style.transform = ''; btn.style.boxShadow = '0 4px 12px rgba(102,126,234,.35)'; }
-    });
-
-    // 拖拽（节流 + 按需挂载）
-    var dx, dy, rafId = null;
+    // 拖拽（RAF 节流 + 按需挂载）
+    var isDrag = false, dx, dy, rafId = null;
     function onMove(e) {
-      if (!isDrag) return;
-      if (rafId) return;
+      if (!isDrag || rafId) return;
       rafId = requestAnimationFrame(function () {
-        var x = Math.max(0, Math.min(window.innerWidth - 100, e.clientX - dx));
-        var y = Math.max(0, Math.min(window.innerHeight - 50, e.clientY - dy));
-        box.style.left = x + 'px';
-        box.style.top = y + 'px';
+        box.style.left = Math.max(0, Math.min(window.innerWidth - 100, e.clientX - dx)) + 'px';
+        box.style.top = Math.max(0, Math.min(window.innerHeight - 50, e.clientY - dy)) + 'px';
         rafId = null;
       });
     }
     function onUp() {
       if (!isDrag) return;
       isDrag = false;
+      btn.classList.remove('punk-dragging');
       btn.style.cursor = 'pointer';
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
@@ -360,6 +413,7 @@
       isDrag = true;
       dx = e.clientX - box.offsetLeft;
       dy = e.clientY - box.offsetTop;
+      btn.classList.add('punk-dragging');
       btn.style.cursor = 'grabbing';
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
@@ -368,8 +422,8 @@
 
     // 点击外部收起
     document.addEventListener('click', function (e) {
-      if (expanded && !box.contains(e.target)) {
-        expanded = false;
+      if (isExpanded && !box.contains(e.target)) {
+        isExpanded = false;
         panel.style.display = 'none';
         GM_setValue('punk_search_expanded', false);
       }
@@ -378,44 +432,41 @@
     document.body.appendChild(box);
   }
 
-  // ─── 非搜索页：快捷搜索 ───
+  // ─── 非搜索页：快捷搜索触发按钮 ───
   function initQuickSearch() {
     var savedPos = GM_getValue('punk_quick_search_position', { left: 20, bottom: 80 });
 
-    var trigger = createEl('div',
+    var trigger = el('div', 'punk-trigger',
       'position:fixed;bottom:' + savedPos.bottom + 'px;left:' + savedPos.left + 'px;' +
-      'width:48px;height:48px;background:' + THEME.grad + ';color:#fff;border-radius:50%;' +
+      'width:48px;height:48px;background:' + C.grad + ';color:#fff;border-radius:50%;' +
       'display:flex;align-items:center;justify-content:center;cursor:move;z-index:9999998;' +
-      'box-shadow:0 8px 20px rgba(102,126,234,.4);font-size:20px;' +
-      'transition:transform .15s,box-shadow .15s;'
+      'box-shadow:' + C.shadow3 + ';'
     );
-    trigger.textContent = '🫰';
+    trigger.appendChild(svgEl(ICON.planet));
     trigger.id = 'punk-qs-trigger';
 
-    // 拖拽 vs 点击判定
     var isDrag = false, hasDrag = false, t0 = 0, sx, sy, sl, sb, rafId = null;
 
     function onMove(e) {
-      if (!isDrag) return;
-      if (rafId) return;
+      if (!isDrag || rafId) return;
       rafId = requestAnimationFrame(function () {
-        var dx = e.clientX - sx, dy = e.clientY - sy;
-        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) hasDrag = true;
-        trigger.style.left = Math.max(0, Math.min(sl + dx, window.innerWidth - 50)) + 'px';
-        trigger.style.bottom = Math.max(0, Math.min(sb - dy, window.innerHeight - 50)) + 'px';
+        var ddx = e.clientX - sx, ddy = e.clientY - sy;
+        if (Math.abs(ddx) > 5 || Math.abs(ddy) > 5) hasDrag = true;
+        trigger.style.left = Math.max(0, Math.min(sl + ddx, window.innerWidth - 50)) + 'px';
+        trigger.style.bottom = Math.max(0, Math.min(sb - ddy, window.innerHeight - 50)) + 'px';
         rafId = null;
       });
     }
     function onUp() {
       if (!isDrag) return;
       isDrag = false;
+      trigger.classList.remove('punk-dragging');
       trigger.style.cursor = 'move';
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
       GM_setValue('punk_quick_search_position', {
-        left: parseInt(trigger.style.left),
-        bottom: parseInt(trigger.style.bottom),
+        left: parseInt(trigger.style.left), bottom: parseInt(trigger.style.bottom),
       });
       if (hasDrag) openQuickSearch();
     }
@@ -425,6 +476,7 @@
       sx = e.clientX; sy = e.clientY;
       sl = parseInt(trigger.style.left) || 20;
       sb = parseInt(trigger.style.bottom) || 80;
+      trigger.classList.add('punk-dragging');
       trigger.style.cursor = 'grabbing';
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
@@ -437,68 +489,49 @@
       toggleJumpPanel(trigger);
     });
 
-    trigger.addEventListener('mouseenter', function () {
-      if (!isDrag) { trigger.style.transform = 'scale(1.1)'; trigger.style.boxShadow = '0 12px 28px rgba(102,126,234,.5)'; }
-    });
-    trigger.addEventListener('mouseleave', function () {
-      if (!isDrag) { trigger.style.transform = ''; trigger.style.boxShadow = '0 8px 20px rgba(102,126,234,.4)'; }
-    });
-
     document.body.appendChild(trigger);
   }
 
-  // ─── 跳转面板（点击触发按钮弹出）───
+  // ─── 跳转面板 ───
   function toggleJumpPanel(anchor) {
     var existing = document.getElementById('punk-jump-panel');
     if (existing) { existing.remove(); return; }
 
     var enabled = getEnabledMarks();
-    var panel = createEl('div',
-      'position:fixed;bottom:80px;right:20px;background:#fff;border:1px solid ' + THEME.border + ';' +
-      'border-radius:12px;padding:16px;box-shadow:0 10px 25px -5px rgba(102,126,234,.25),' +
-      '0 8px 10px -6px rgba(0,0,0,.1);min-width:280px;max-width:320px;z-index:9999997;' +
-      'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
-      'animation:punkFadeIn .2s ease;'
+    var panel = el('div', 'punk-anim',
+      'position:fixed;bottom:80px;right:20px;' +
+      'background:' + C.glass + ';backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);' +
+      'border:1px solid ' + C.glassBorder + ';border-radius:' + C.radius + ';padding:16px;' +
+      'box-shadow:' + C.shadow3 + ';min-width:280px;max-width:320px;z-index:9999997;' +
+      'font-family:' + C.font + ';animation:punkSlide .2s ease;'
     );
     panel.id = 'punk-jump-panel';
 
-    var title = createEl('div',
-      'font-size:14px;font-weight:600;color:' + THEME.purpleText + ';' +
-      'margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid ' + THEME.border + ';'
+    var title = el('div', null,
+      'display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:' + C.text + ';' +
+      'margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(0,0,0,.06);'
     );
-    title.textContent = '⭐ 搜索引擎跳转';
+    title.appendChild(svgEl(ICON.star));
+    title.appendChild(document.createTextNode('搜索引擎跳转'));
     panel.appendChild(title);
 
-    var wrap = createEl('div', 'display:flex;flex-wrap:wrap;gap:6px;');
+    var wrap = el('div', null, 'display:flex;flex-wrap:wrap;gap:6px;');
 
     enabled.forEach(function (mark) {
       var eng = ENGINES.find(function (e) { return e.mark === mark; });
       if (!eng) return;
-      var b = createEl('button',
-        'padding:6px 12px;background:' + THEME.bgLight + ';color:' + THEME.purpleText + ';' +
-        'border:1px solid ' + THEME.borderLight + ';border-radius:6px;font-size:12px;' +
-        'font-weight:500;cursor:pointer;transition:background .12s,color .12s;'
-      );
+      var b = el('button', 'punk-pop-btn');
       b.textContent = eng.name;
-      b.addEventListener('mouseenter', function () { b.style.background = THEME.purple; b.style.color = '#fff'; b.style.borderColor = THEME.purple; });
-      b.addEventListener('mouseleave', function () { b.style.background = THEME.bgLight; b.style.color = THEME.purpleText; b.style.borderColor = THEME.borderLight; });
-      b.addEventListener('click', function () {
-        panel.remove();
-        openQuickSearch(eng);
-      });
+      b.addEventListener('click', function () { panel.remove(); openQuickSearch(eng); });
       wrap.appendChild(b);
     });
 
     panel.appendChild(wrap);
 
-    var close = createEl('button',
-      'position:absolute;top:8px;right:8px;width:24px;height:24px;background:#F3F4F6;' +
-      'border:none;border-radius:50%;font-size:16px;color:' + THEME.textMuted + ';' +
-      'cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s;'
+    var close = el('button', 'punk-close',
+      'position:absolute;top:8px;right:8px;'
     );
-    close.textContent = '×';
-    close.addEventListener('mouseenter', function () { close.style.background = '#E5E7EB'; });
-    close.addEventListener('mouseleave', function () { close.style.background = '#F3F4F6'; });
+    close.appendChild(svgEl(ICON.close));
     close.addEventListener('click', function () { panel.remove(); });
     panel.appendChild(close);
 
@@ -514,57 +547,63 @@
 
   // ─── 星际搜索面板 ───
   function openQuickSearch(presetEngine) {
-    ensureAnimations();
+    injectCSS();
     var existing = document.getElementById('punk-qs');
     if (existing) { existing.remove(); return; }
 
-    var div = createEl('div',
-      'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.95);' +
-      'width:90%;max-width:600px;max-height:80vh;background:#fff;' +
-      'border:1px solid ' + THEME.border + ';border-radius:16px;' +
-      'box-shadow:0 25px 50px -12px rgba(102,126,234,.25);z-index:10000001;' +
-      'overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
-      'animation:punkAppear .2s ease forwards;'
+    var div = el('div', 'punk-anim',
+      'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.92);' +
+      'width:90%;max-width:600px;max-height:80vh;' +
+      'background:' + C.glass + ';backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);' +
+      'border:1px solid ' + C.glassBorder + ';border-radius:16px;' +
+      'box-shadow:' + C.shadow4 + ';z-index:10000001;overflow:hidden;' +
+      'font-family:' + C.font + ';animation:punkIn .22s ease forwards;'
     );
     div.id = 'punk-qs';
 
     // 头部
-    var header = createEl('div',
-      'padding:20px 28px;background:' + THEME.grad + ';color:#fff;text-align:center;position:relative;'
+    var header = el('div', null,
+      'padding:20px 28px;background:' + C.grad + ';color:#fff;text-align:center;position:relative;'
     );
 
-    var closeBtn = createEl('button',
-      'position:absolute;top:12px;right:16px;width:32px;height:32px;background:rgba(255,255,255,.2);' +
-      'border:none;border-radius:50%;font-size:20px;cursor:pointer;color:#fff;' +
-      'transition:background .12s;display:flex;align-items:center;justify-content:center;line-height:1;'
+    var closeBtn = el('button', null,
+      'position:absolute;top:12px;right:16px;width:32px;height:32px;background:rgba(255,255,255,.15);' +
+      'border:none;border-radius:50%;cursor:pointer;color:#fff;' +
+      'transition:background .15s;display:flex;align-items:center;justify-content:center;'
     );
-    closeBtn.textContent = '×';
+    closeBtn.appendChild(svgEl(ICON.close));
     closeBtn.title = '关闭 (ESC)';
-    closeBtn.addEventListener('mouseenter', function () { closeBtn.style.background = 'rgba(255,255,255,.35)'; });
-    closeBtn.addEventListener('mouseleave', function () { closeBtn.style.background = 'rgba(255,255,255,.2)'; });
+    closeBtn.addEventListener('mouseenter', function () { closeBtn.style.background = 'rgba(255,255,255,.3)'; });
+    closeBtn.addEventListener('mouseleave', function () { closeBtn.style.background = 'rgba(255,255,255,.15)'; });
     closeBtn.addEventListener('click', function () { div.remove(); });
     header.appendChild(closeBtn);
 
-    var h2 = createEl('h2', 'margin:0 0 12px 0;font-size:22px;font-weight:600;');
-    h2.textContent = '🫰 星际搜索';
+    var h2 = el('h2', null, 'display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 12px 0;font-size:22px;font-weight:600;');
+    h2.appendChild(svgEl(ICON.planet));
+    h2.appendChild(document.createTextNode('星际搜索'));
     header.appendChild(h2);
 
-    var inputWrap = createEl('div', 'position:relative;max-width:380px;margin:0 auto;');
-    var input = createEl('input', null, {
-      type: 'text', placeholder: '探索宇宙中的知识...', id: 'punk-qs-input',
-      style: 'width:100%;padding:12px 40px 12px 18px;border:none;border-radius:24px;font-size:14px;' +
-             'outline:none;background:rgba(255,255,255,.95);color:#1F2937;' +
-             'box-shadow:0 4px 12px rgba(0,0,0,.15);box-sizing:border-box;',
-    });
-    var clearBtn = createEl('button',
-      'position:absolute;right:12px;top:50%;transform:translateY(-50%);width:22px;height:22px;' +
-      'background:#E5E7EB;border:none;border-radius:50%;font-size:14px;cursor:pointer;' +
-      'color:' + THEME.textMuted + ';transition:background .12s;display:flex;align-items:center;' +
-      'justify-content:center;line-height:1;'
+    var inputWrap = el('div', null, 'position:relative;max-width:380px;margin:0 auto;');
+    var input = el('input', null,
+      'width:100%;padding:12px 40px 12px 18px;border:none;border-radius:24px;font-size:14px;' +
+      'outline:none;background:rgba(255,255,255,.92);color:#1F2937;' +
+      'box-shadow:0 4px 12px rgba(0,0,0,.1);box-sizing:border-box;' +
+      'transition:box-shadow .2s;'
     );
-    clearBtn.textContent = '×';
-    clearBtn.addEventListener('mouseenter', function () { clearBtn.style.background = '#D1D5DB'; });
-    clearBtn.addEventListener('mouseleave', function () { clearBtn.style.background = '#E5E7EB'; });
+    input.type = 'text';
+    input.placeholder = '探索宇宙中的知识...';
+    input.id = 'punk-qs-input';
+    input.addEventListener('focus', function () { input.style.boxShadow = '0 0 0 3px rgba(124,58,237,.2), 0 4px 12px rgba(0,0,0,.1)'; });
+    input.addEventListener('blur', function () { input.style.boxShadow = '0 4px 12px rgba(0,0,0,.1)'; });
+
+    var clearBtn = el('button', null,
+      'position:absolute;right:12px;top:50%;transform:translateY(-50%);width:22px;height:22px;' +
+      'background:rgba(0,0,0,.06);border:none;border-radius:50%;cursor:pointer;' +
+      'color:' + C.textMuted + ';transition:background .15s;display:flex;align-items:center;justify-content:center;'
+    );
+    clearBtn.appendChild(svgEl(ICON.close));
+    clearBtn.addEventListener('mouseenter', function () { clearBtn.style.background = 'rgba(0,0,0,.12)'; });
+    clearBtn.addEventListener('mouseleave', function () { clearBtn.style.background = 'rgba(0,0,0,.06)'; });
     clearBtn.addEventListener('click', function () { input.value = ''; input.focus(); });
     inputWrap.appendChild(input);
     inputWrap.appendChild(clearBtn);
@@ -572,58 +611,41 @@
     div.appendChild(header);
 
     // 内容区
-    var content = createEl('div', 'padding:0;max-height:50vh;overflow-y:auto;background:' + THEME.bgLight + ';');
+    var content = el('div', null,
+      'padding:0;max-height:50vh;overflow-y:auto;background:' + C.surface + ';'
+    );
 
     // 标签栏
-    var tabBar = createEl('div',
-      'display:flex;background:#fff;border-bottom:1px solid ' + THEME.border + ';' +
+    var tabBar = el('div', null,
+      'display:flex;background:' + C.glassDark + ';border-bottom:1px solid rgba(0,0,0,.06);' +
       'overflow-x:auto;scrollbar-width:none;'
     );
-    var tabBody = createEl('div', 'padding:16px 20px;');
+    var tabBody = el('div', null, 'padding:16px 20px;');
 
-    var allTabs = QUICK_TABS.concat([{ tab: '⚙️ 设置', isSettings: true }]);
+    var allTabs = QUICK_TABS.concat([{ tab: '设置', isSettings: true }]);
     var activeTab = null;
 
     function activateTab(tabBtn, config) {
-      tabBar.querySelectorAll('button').forEach(function (b) {
-        b.style.background = 'transparent'; b.style.color = THEME.textMuted;
-        b.style.borderBottom = '2px solid transparent'; b.style.fontWeight = '500';
-      });
-      tabBtn.style.background = THEME.bgLight; tabBtn.style.color = THEME.purpleDark;
-      tabBtn.style.borderBottom = '2px solid ' + THEME.purple; tabBtn.style.fontWeight = '600';
+      tabBar.querySelectorAll('.punk-tab').forEach(function (b) { b.classList.remove('punk-tab-active'); });
+      tabBtn.classList.add('punk-tab-active');
       if (config.isSettings) renderSettings(); else renderTab(config.list);
       activeTab = tabBtn;
     }
 
     allTabs.forEach(function (config, i) {
-      var t = createEl('button',
-        'padding:10px 18px;border:none;background:' + (i === 0 ? THEME.bgLight : 'transparent') + ';' +
-        'color:' + (i === 0 ? THEME.purpleDark : THEME.textMuted) + ';cursor:pointer;' +
-        'border-bottom:2px solid ' + (i === 0 ? THEME.purple : 'transparent') + ';' +
-        'white-space:nowrap;font-size:13px;font-weight:' + (i === 0 ? '600' : '500') + ';' +
-        'transition:background .12s;color .12s;margin:0;'
-      );
+      var t = el('button', 'punk-tab' + (i === 0 ? ' punk-tab-active' : ''));
       t.textContent = config.tab;
       if (i === 0) activeTab = t;
       t.addEventListener('click', function () { activateTab(t, config); });
-      t.addEventListener('mouseenter', function () { if (t !== activeTab) t.style.background = THEME.bgLight; });
-      t.addEventListener('mouseleave', function () { if (t !== activeTab) t.style.background = 'transparent'; });
       tabBar.appendChild(t);
     });
 
-    // 渲染标签内容
     function renderTab(list) {
       tabBody.innerHTML = '';
-      var grid = createEl('div', 'display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;');
+      var grid = el('div', null, 'display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;');
       list.forEach(function (item) {
-        var b = createEl('button',
-          'padding:8px 12px;border:1px solid ' + THEME.borderLight + ';background:#fff;' +
-          'border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;color:' + THEME.textDark + ';' +
-          'transition:background .12s,color .12s;'
-        );
+        var b = el('button', 'punk-grid-btn');
         b.textContent = item.name;
-        b.addEventListener('mouseenter', function () { b.style.background = THEME.purple; b.style.color = '#fff'; b.style.borderColor = THEME.purple; });
-        b.addEventListener('mouseleave', function () { b.style.background = '#fff'; b.style.color = THEME.textDark; b.style.borderColor = THEME.borderLight; });
         b.addEventListener('click', function () {
           var kw = input.value.trim();
           if (kw) window.open(item.url + encodeURIComponent(kw), '_blank');
@@ -633,19 +655,17 @@
       tabBody.appendChild(grid);
     }
 
-    // 渲染设置
     function renderSettings() {
       tabBody.innerHTML = '';
       var enabled = getEnabledMarks();
 
-      // 预设区
-      var presetBox = createEl('div',
-        'margin-bottom:16px;padding:12px;background:#fff;border-radius:8px;border:1px solid ' + THEME.border + ';'
+      var presetBox = el('div', null,
+        'margin-bottom:16px;padding:12px;background:' + C.glassDark + ';border-radius:' + C.radius + ';border:1px solid rgba(0,0,0,.04);'
       );
-      var presetTitle = createEl('h4', 'margin:0 0 10px 0;color:' + THEME.textDark + ';font-size:13px;font-weight:600;');
+      var presetTitle = el('h4', null, 'margin:0 0 10px 0;color:' + C.text + ';font-size:13px;font-weight:600;');
       presetTitle.textContent = '快速预设';
       presetBox.appendChild(presetTitle);
-      var presetWrap = createEl('div', 'display:flex;flex-wrap:wrap;gap:6px;');
+      var presetWrap = el('div', null, 'display:flex;flex-wrap:wrap;gap:6px;');
 
       [
         { name: '国内预设', mark: PRESETS.default },
@@ -654,13 +674,8 @@
         { name: '壁纸预设', mark: PRESETS.wallpaper },
         { name: '全部预设', mark: PRESETS.all },
       ].forEach(function (p) {
-        var b = createEl('button',
-          'flex:1;min-width:70px;padding:6px 10px;background:' + THEME.purple + ';border:none;' +
-          'color:#fff;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:background .12s;'
-        );
+        var b = el('button', 'punk-preset');
         b.textContent = p.name;
-        b.addEventListener('mouseenter', function () { b.style.background = THEME.purpleDark; });
-        b.addEventListener('mouseleave', function () { b.style.background = THEME.purple; });
         b.addEventListener('click', function () {
           GM_setValue('punk_setup_search', p.mark);
           renderSettings();
@@ -671,32 +686,24 @@
       presetBox.appendChild(presetWrap);
       tabBody.appendChild(presetBox);
 
-      // 引擎选择区
-      var engBox = createEl('div', 'margin-top:12px;');
-      var engTitle = createEl('h4', 'margin:0 0 10px 0;color:' + THEME.textDark + ';font-size:13px;font-weight:600;');
+      var engBox = el('div', null, 'margin-top:12px;');
+      var engTitle = el('h4', null, 'margin:0 0 10px 0;color:' + C.text + ';font-size:13px;font-weight:600;');
       engTitle.textContent = '自定义搜索引擎';
       engBox.appendChild(engTitle);
 
-      var grid = createEl('div',
+      var grid = el('div', null,
         'display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;' +
-        'max-height:200px;overflow-y:auto;padding:10px;background:#fff;border:1px solid ' + THEME.border + ';border-radius:8px;'
+        'max-height:200px;overflow-y:auto;padding:10px;background:' + C.glassDark + ';' +
+        'border:1px solid rgba(0,0,0,.04);border-radius:' + C.radius + ';'
       );
 
       ENGINES.forEach(function (eng) {
-        var label = createEl('label',
-          'display:flex;align-items:center;padding:5px 6px;cursor:pointer;border-radius:6px;' +
-          'transition:background .12s;background:' + THEME.bgLight + ';'
-        );
-        label.addEventListener('mouseenter', function () { label.style.background = THEME.bgHover; });
-        label.addEventListener('mouseleave', function () { label.style.background = THEME.bgLight; });
-
-        var cb = createEl('input', null, {
-          type: 'checkbox', 'data-mark': eng.mark,
-          style: 'margin-right:6px;width:14px;height:14px;accent-color:' + THEME.purple + ';cursor:pointer;',
-        });
-        cb.checked = enabled.includes(eng.mark);
-
-        var span = createEl('span', 'font-size:12px;color:' + THEME.textDark + ';');
+        var label = el('label', 'punk-label');
+        var cb = el('input', null, 'margin-right:6px;width:14px;height:14px;accent-color:' + C.primary + ';cursor:pointer;');
+        cb.type = 'checkbox';
+        cb.dataset.mark = eng.mark;
+        cb.checked = enabled.indexOf(eng.mark) !== -1;
+        var span = el('span', null, 'font-size:12px;color:' + C.text + ';');
         span.textContent = eng.name;
         label.appendChild(cb);
         label.appendChild(span);
@@ -705,14 +712,8 @@
 
       engBox.appendChild(grid);
 
-      // 保存按钮
-      var save = createEl('button',
-        'margin-top:12px;padding:8px 20px;background:' + THEME.purple + ';color:#fff;border:none;' +
-        'border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;transition:background .12s;'
-      );
+      var save = el('button', 'punk-save');
       save.textContent = '保存设置';
-      save.addEventListener('mouseenter', function () { save.style.background = THEME.purpleDark; });
-      save.addEventListener('mouseleave', function () { save.style.background = THEME.purple; });
       save.addEventListener('click', function () {
         var selected = [];
         grid.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
@@ -726,14 +727,11 @@
       tabBody.appendChild(engBox);
     }
 
-    // 默认显示第一个标签
     renderTab(QUICK_TABS[0].list);
-
     content.appendChild(tabBar);
     content.appendChild(tabBody);
     div.appendChild(content);
 
-    // 如果有预设引擎，直接打开
     if (presetEngine) {
       var kw = input.value.trim();
       if (kw) {
@@ -743,11 +741,10 @@
       }
     }
 
-    // 搜索框回车
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
-        var kw = input.value.trim();
-        if (kw) window.open('https://www.google.com/search?q=' + encodeURIComponent(kw), '_blank');
+        var k = input.value.trim();
+        if (k) window.open('https://www.google.com/search?q=' + encodeURIComponent(k), '_blank');
       }
     });
 
@@ -757,11 +754,10 @@
 
   // ─── 初始化 ───
   function init() {
-    var isSearch = isSearchPage();
-    if (isSearch) initSearchPage();
+    injectCSS();
+    if (isSearchPage()) initSearchPage();
     else initQuickSearch();
 
-    // ESC 关闭（全局单例）
     if (!window.__punkEsc) {
       document.addEventListener('keydown', function (e) {
         if (e.key !== 'Escape') return;
@@ -774,7 +770,6 @@
     }
   }
 
-  // @run-at document-idle 时 readyState 已经是 complete
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
