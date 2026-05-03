@@ -8,9 +8,9 @@ Tampermonkey 油猴用户脚本 — 在搜索结果页面添加其他搜索引�
 
 > 需先安装 [Tampermonkey](https://www.tampermonkey.net/) 浏览器扩展
 
-[点此安装脚本](https://cdn.jsdelivr.net/gh/SantaChains/scripts@latest/SearchRedireact/user.js)
+[点此安装脚本](https://github.com/SantaChains/scripts/blob/main/SearchRedireact/user.js)
 
-> 安装后 Tampermonkey 会自动检测并弹出安装确认。后续更新通过 jsDelivr CDN 自动推送。
+> 打开页面后 Tampermonkey 会自动检测并弹出安装确认。后续更新通过 jsDelivr CDN 自动推送。
 
 ## 功能
 
