@@ -1,14 +1,13 @@
 // ==UserScript==
 // @name        Steam Wishlist Enhancer
 // @namespace   https://greasyfork.org/users/34380
-// @version     20240504
+// @version     20240505
 // @description Steam愿望单增强工具：史低价格监控、购买建议、多区价格对比
 // @match       https://store.steampowered.com/wishlist*
 // @match       https://steamcommunity.com/id/*/wishlist*
 // @match       https://steamcommunity.com/profiles/*/wishlist*
 // @connect     steamdb.keylol.com
 // @connect     store.steampowered.com
-// @connect     api.isthereanydeal.com
 // @grant       GM_xmlhttpRequest
 // @grant       GM_setValue
 // @grant       GM_getValue
@@ -24,31 +23,7 @@
 (function () {
     'use strict';
 
-    // ─── 配色系统（Nerd Dark — Tokyo Night × Dracula）───
-    const C = {
-        grad: 'linear-gradient(135deg, #1a1b26 0%, #24283b 50%, #1a1b26 100%)',
-        gradHover: 'linear-gradient(135deg, #24283b 0%, #2f3347 50%, #24283b 100%)',
-        primary: '#9ece6a',
-        primaryHover: '#73daca',
-        cta: '#bb9af7',
-        ctaHover: '#c0caf5',
-        glass: 'rgba(26,27,38,0.92)',
-        glassBorder: 'rgba(86,95,137,0.25)',
-        glassDark: 'rgba(36,40,59,0.88)',
-        surface: 'rgba(47,51,71,0.7)',
-        bgHover: 'rgba(158,206,106,0.08)',
-        bgActive: 'rgba(158,206,106,0.15)',
-        text: '#c0caf5',
-        textMuted: '#565f89',
-        shadow1: '0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)',
-        shadow2: '0 4px 12px rgba(0,0,0,0.35), 0 2px 4px rgba(158,206,106,0.06)',
-        shadow3: '0 12px 32px rgba(0,0,0,0.45), 0 4px 8px rgba(158,206,106,0.08)',
-        shadow4: '0 24px 64px rgba(0,0,0,0.55), 0 8px 16px rgba(158,206,106,0.1)',
-        radius: '12px',
-        radiusSm: '8px',
-        radiusFull: '9999px',
-        font: '"JetBrains Mono","Fira Code","Cascadia Code",Consolas,"Courier New",monospace',
-    };
+
 
     // ==================== 样式定义 ====================
     document.querySelector('head').insertAdjacentHTML('beforeend', `<style>
@@ -641,13 +616,15 @@
         // 计算购买建议
         getDealRating() {
             if (!this.priceData || this.priceData.isFree) return 'normal';
-            
-            const current = this.priceData.price.cn?.discount || 0;
-            const lowest = this.priceData.lowest?.cut || 0;
-            
-            if (current === 0) return 'normal';
-            if (current >= lowest && lowest > 0) return 'excellent'; // 史低
-            if (current >= lowest - 10) return 'good'; // 接近史低
+
+            const currentPrice = this.priceData.price.cn?.current;
+            const lowestPrice = this.priceData.lowest?.cn;
+
+            if (!currentPrice || currentPrice <= 0) return 'normal';
+            if (lowestPrice == null || lowestPrice <= 0) return 'normal';
+
+            if (currentPrice <= lowestPrice) return 'excellent';
+            if (currentPrice <= lowestPrice * 1.1) return 'good';
             return 'fair';
         }
 
@@ -762,13 +739,11 @@
             </tr>
         `;
         
-        // BBCode
-        const bbcode = `[tr][td]${game.priority}[/td][td][url=https://store.steampowered.com/app/${game.appid}/]${game.name}[/url][/td][td]${cnPrice.discount > 0 ? `-${cnPrice.discount}%` : '-'}[/td][td]${cnPrice.current ? `¥${cnPrice.current}` : '-'}[/td][td]${lowest.cn ? `¥${lowest.cn}` : '-'}[/td][td]${p?.bundleCount || '-'}[/td][/tr]';
+        const bbcodeRow = `[tr][td]${game.priority}[/td][td][url=https://store.steampowered.com/app/${game.appid}/]${game.name}[/url][/td][td]${cnPrice.discount > 0 ? '-' + cnPrice.discount + '%' : '-'}[/td][td]${cnPrice.current ? '¥' + cnPrice.current : '-'}[/td][td]${lowest.cn ? '¥' + lowest.cn : '-'}[/td][td]${p?.bundleCount || '-'}[/td][/tr]`;
+
+        const mdRow = '| ' + game.priority + ' | [' + game.name + '](https://store.steampowered.com/app/' + game.appid + '/) | ' + (cnPrice.discount > 0 ? '-' + cnPrice.discount + '%' : '-') + ' | ' + (cnPrice.current ? '¥' + cnPrice.current : '-') + ' | ' + (lowest.cn ? '¥' + lowest.cn : '-') + ' | ' + (p?.bundleCount || '-') + ' |';
         
-        // Markdown
-        const markdown = `| ${game.priority} | [${game.name}](https://store.steampowered.com/app/${game.appid}/) | ${cnPrice.discount > 0 ? `-${cnPrice.discount}%` : '-'} | ${cnPrice.current ? `¥${cnPrice.current}` : '-'} | ${lowest.cn ? `¥${lowest.cn}` : '-'} | ${p?.bundleCount || '-'} |`;
-        
-        return { html, bbcode, markdown };
+        return { html, bbcode: bbcodeRow, markdown: mdRow };
     }
 
     // ==================== 主流程 ====================

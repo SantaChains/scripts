@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         B站字幕下载器 Pro
 // @namespace    https://github.com/...
-// @version      2.0.0
+// @version      2.1.1
 // @description  下载B站视频字幕（JSON/SRT），支持多P和语言选择，可通过菜单重新显示面板
 // @author       You
 // @match        https://www.bilibili.com/video/*

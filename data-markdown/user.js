@@ -1,11 +1,10 @@
 // ==UserScript==
 // @name         Data Markdown
 // @namespace    http://tampermonkey.net/
-// @version      2.1
+// @version      2.2
 // @description  将 HTML 中 data-markdown 元素的 Markdown 内容渲染为 HTML
 // @author       Paul Irish & SantaChains
 // @match        *://*/*
-// @grant        GM_getValue
 // @noframes
 // @run-at       document-idle
 // @updateURL    https://raw.githubusercontent.com/SantaChains/scripts/main/data-markdown/meta.js
@@ -93,6 +92,11 @@
               var attrName = attrs[k].name.toLowerCase();
               if (ALLOWED_ATTRS.indexOf(attrName) === -1) {
                 child.removeAttribute(attrs[k].name);
+              } else if (attrName === 'href' || attrName === 'src') {
+                var val = attrs[k].value.trim().toLowerCase();
+                if (val.indexOf('javascript:') === 0 || val.indexOf('data:') === 0 || val.indexOf('vbscript:') === 0) {
+                  child.removeAttribute(attrs[k].name);
+                }
               }
             }
             walk(child);
@@ -144,7 +148,6 @@
         var added = mutations[i].addedNodes;
         if (added.length > 0) {
           renderNewElements(added);
-          return;
         }
       }
     });

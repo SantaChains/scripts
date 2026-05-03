@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Steam 成就 BBCode 生成器（多样式+单成就复制）
 // @namespace    http://tampermonkey.net/
-// @version      1.4
+// @version      1.5
 // @description  一键生成 Steam 成就列表的 BBCode，多种样式可选，支持自定义样式，支持全球成就和个人成就页面，还能复制单个成就的代码！
 // @author       chrisevansbian & SantaChains
 // @match        https://steamcommunity.com/stats/*/achievements*
@@ -25,6 +25,7 @@
         primaryHover: '#73daca',
         cta: '#bb9af7',
         ctaHover: '#c0caf5',
+        danger: '#f7768e',
         glass: 'rgba(26,27,38,0.92)',
         glassBorder: 'rgba(86,95,137,0.25)',
         glassDark: 'rgba(36,40,59,0.88)',
@@ -469,6 +470,7 @@
 
     // 监听页面变化（处理动态加载）
     let moDebounce = null;
+    var achieveContainer = document.querySelector('.profile_achievements') || document.querySelector('#mainContents') || document.body;
     const observer = new MutationObserver(() => {
         if (moDebounce) clearTimeout(moDebounce);
         moDebounce = setTimeout(() => {
@@ -476,7 +478,7 @@
             moDebounce = null;
         }, 300);
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(achieveContainer, { childList: true, subtree: true });
 
     console.log("[BBCode生成器] 脚本已加载，找到 " + document.querySelectorAll(".achieveRow").length + " 个成就");
 })();

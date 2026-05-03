@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         搜索引擎一键跳转
 // @namespace    http://tampermonkey.net/
-// @version      6.1
+// @version      6.2
 // @description  在搜索结果页面添加其他搜索引擎的快捷跳转按钮，支持自定义搜索引擎
 // @author       Punkjet & SantaChains
 // @match        *://*/*
@@ -397,18 +397,12 @@
     box.appendChild(btn);
     box.appendChild(panel);
 
-    // 展开/收起
-    var isExpanded = expanded;
-    btn.addEventListener('click', function () {
-      isExpanded = !isExpanded;
-      panel.style.display = isExpanded ? 'block' : 'none';
-      GM_setValue('punk_search_expanded', isExpanded);
-    });
-
     // 拖拽（RAF 节流 + 按需挂载）
-    var isDrag = false, dx, dy, rafId = null;
+    var isExpanded = expanded;
+    var isDrag = false, hasDragged = false, dx, dy, rafId = null;
     function onMove(e) {
       if (!isDrag || rafId) return;
+      hasDragged = true;
       rafId = requestAnimationFrame(function () {
         box.style.left = Math.max(0, Math.min(window.innerWidth - 100, e.clientX - dx)) + 'px';
         box.style.top = Math.max(0, Math.min(window.innerHeight - 50, e.clientY - dy)) + 'px';
@@ -427,6 +421,7 @@
     }
     btn.addEventListener('mousedown', function (e) {
       isDrag = true;
+      hasDragged = false;
       dx = e.clientX - box.offsetLeft;
       dy = e.clientY - box.offsetTop;
       btn.classList.add('punk-dragging');
@@ -436,8 +431,17 @@
       e.preventDefault();
     });
 
+    // 展开/收起（排除拖拽）
+    btn.addEventListener('click', function () {
+      if (hasDragged) { hasDragged = false; return; }
+      isExpanded = !isExpanded;
+      panel.style.display = isExpanded ? 'block' : 'none';
+      GM_setValue('punk_search_expanded', isExpanded);
+    });
+
     // 点击外部收起
     document.addEventListener('click', function (e) {
+      if (hasDragged) return;
       if (isExpanded && !box.contains(e.target)) {
         isExpanded = false;
         panel.style.display = 'none';
@@ -640,7 +644,7 @@
 
     var allTabs = QUICK_TABS.concat([{ tab: '设置', isSettings: true }]);
     var activeTab = null;
-    var selectedEngine = presetEngine || null;
+    var selectedEngine = presetEngine || (QUICK_TABS[0] && QUICK_TABS[0].list[0]) || null;
 
     function activateTab(tabBtn, config) {
       tabBar.querySelectorAll('.punk-tab').forEach(function (b) { b.classList.remove('punk-tab-active'); });

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Link Clear
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.4
 // @description  去除链接追踪参数、解析搜索引擎跳转、净化短链接
 // @author       SantaChains
 // @match        *://*/*

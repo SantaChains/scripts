@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Steam 成就 BBCode 生成器（多样式+单成就复制）
 // @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.5
 // @description  一键生成 Steam 成就列表的 BBCode，多种样式可选，支持自定义样式，支持全球成就和个人成就页面，还能复制单个成就的代码！
 // @author       chrisevansbian & SantaChains
 // @match        https://steamcommunity.com/stats/*/achievements*

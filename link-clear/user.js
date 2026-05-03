@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Link Clear
 // @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.4
 // @description  去除链接追踪参数、解析搜索引擎跳转、净化短链接
 // @author       SantaChains
 // @match        *://*/*
@@ -375,6 +375,35 @@
     return count;
   }
 
+  function scanAddedNodes(addedNodes) {
+    var count = 0;
+    for (var i = 0; i < addedNodes.length; i++) {
+      var node = addedNodes[i];
+      if (node.nodeType !== 1) continue;
+      if (node.tagName === 'A') {
+        var href = node.href;
+        if (!href || href.indexOf('http') !== 0) continue;
+        if (node.dataset.lcMarked && node.dataset.uncleanHref === href) continue;
+        if (node.dataset.lcMarked && node.dataset.uncleanHref !== href) {
+          delete node.dataset.lcMarked;
+          delete node.dataset.uncleanHref;
+          delete node.dataset.cleanHref;
+        }
+        var cleaned = cleanUrl(href);
+        if (cleaned !== href) {
+          node.dataset.uncleanHref = href;
+          node.dataset.cleanHref = cleaned;
+          node.dataset.lcMarked = '1';
+          count++;
+        }
+      }
+      if (node.querySelector) {
+        count += scanLinks(node);
+      }
+    }
+    return count;
+  }
+
   function showToast(msg, type) {
     var color = type === 'error' ? C.danger : C.primary;
     var t = document.createElement('div');
@@ -522,8 +551,8 @@
 
     var px = event ? Math.max(0, event.clientX) : window.innerWidth / 2;
     var py = event ? Math.max(0, event.clientY) : window.innerHeight / 2;
-    panel.style.left = Math.min(px, window.innerWidth - 500) + 'px';
-    panel.style.top = Math.min(py, window.innerHeight - 250) + 'px';
+    panel.style.left = Math.max(0, Math.min(px, window.innerWidth - 500)) + 'px';
+    panel.style.top = Math.max(0, Math.min(py, window.innerHeight - 250)) + 'px';
 
     function closePanel() {
       panel.remove();
@@ -642,24 +671,21 @@
 
     if (window.MutationObserver) {
       var debounceTimer = null;
+      var pendingNodes = [];
       var observer = new MutationObserver(function (mutations) {
-        var hasNew = false;
         for (var mi = 0; mi < mutations.length; mi++) {
           var added = mutations[mi].addedNodes;
           for (var ni = 0; ni < added.length; ni++) {
             if (added[ni].nodeType !== 1) continue;
-            if (added[ni].tagName === 'A' || added[ni].querySelector && added[ni].querySelector('a[href]')) {
-              hasNew = true;
-              break;
-            }
+            pendingNodes.push(added[ni]);
           }
-          if (hasNew) break;
         }
-        if (!hasNew) return;
+        if (pendingNodes.length === 0) return;
 
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(function () {
-          var newCount = scanLinks();
+          var newCount = scanAddedNodes(pendingNodes);
+          pendingNodes = [];
           if (newCount > 0) {
             dirtyCount += newCount;
             updateFloatBtn();
