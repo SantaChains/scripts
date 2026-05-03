@@ -391,6 +391,7 @@
 
         for (let i = 0; i < images.length; i++) {
             const img = images[i].src;
+            if (!text[i]) continue;
             const titleText = text[i].children[0]?.innerText || "";
             const descText = text[i].children[1]?.innerText || "";
             results.push(generator(img, titleText, descText));

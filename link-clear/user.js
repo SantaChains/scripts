@@ -220,8 +220,7 @@
       query: [],
       methods: ['decodeUrl'] },
     { name: 'other',
-      testReg: /^(https?:\/\/[^?#]*)[?#].*$/i,
-      query: ['id', 'tid', 'uid', 'q', 'wd', 'query', 'keyword', 'keywords'] }
+      testReg: /^(https?:\/\/[^?#]*)[?#].*$/i }
   ];
 
   var TRACKING_PARAMS = [
@@ -284,7 +283,7 @@
 
       for (var i = 0; i < REDIRECT_PATTERNS.length; i++) {
         var rp = REDIRECT_PATTERNS[i];
-        if (matchesDomain(hostname, rp.host) && urlObj.pathname.indexOf(rp.path) === 0) {
+        if (matchesDomain(hostname, rp.host) && (urlObj.pathname === rp.path || urlObj.pathname.startsWith(rp.path + '/'))) {
           var real = urlObj.searchParams.get(rp.param);
           if (real && /^https?:\/\//.test(real)) {
             var cleanedReal = cleanUrl(real);

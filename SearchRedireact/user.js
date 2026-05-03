@@ -193,7 +193,7 @@
     ]},
   ];
 
-  var SEARCH_PARAMS = ['q', 'wd', 'query', 'keyword', 'search', 'term', 'kw', 'text', 'eingabe', 'p', 'MT', 'search_query', 'searchtext'];
+  var SEARCH_PARAMS = ['q', 'wd', 'query', 'keyword', 'search', 'term', 'kw', 'text', 'eingabe', 'p', 'MT', 'search_query', 'searchtext', 'i'];
 
   var ENGINE_MAP = {};
   for (var emi = 0; emi < ENGINES.length; emi++) {

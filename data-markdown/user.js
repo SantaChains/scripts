@@ -154,8 +154,6 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  if (!document.querySelector('[data-markdown]')) return;
-
   loadShowdown()
     .then(function () {
       converter = new showdown.Converter({

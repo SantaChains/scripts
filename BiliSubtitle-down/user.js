@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         B站字幕下载器 Pro
-// @namespace    https://github.com/...
+// @namespace    https://github.com/SantaChains
 // @version      2.1.1
 // @description  下载B站视频字幕（JSON/SRT），支持多P和语言选择，可通过菜单重新显示面板
-// @author       You
+// @author       SantaChains
 // @match        https://www.bilibili.com/video/*
 // @icon         https://www.bilibili.com/favicon.ico
 // @grant        GM_xmlhttpRequest

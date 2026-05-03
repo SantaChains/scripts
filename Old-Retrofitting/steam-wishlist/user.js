@@ -587,7 +587,7 @@
                     type: 'text'
                 });
                 
-                const match = res.response.match(/proc\((.*)\)/);
+                const match = res.response.match(/proc\((.*?)\)/);
                 if (match) {
                     const data = JSON.parse(match[1]);
                     const history = data.price_history || {};
