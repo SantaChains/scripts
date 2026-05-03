@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Data Markdown
 // @namespace    http://tampermonkey.net/
-// @version      2.0
+// @version      2.1
 // @description  将 HTML 中 data-markdown 元素的 Markdown 内容渲染为 HTML
 // @author       Paul Irish & SantaChains
 // @match        *://*/*
@@ -18,7 +18,23 @@
 
   var SHOWDOWN_CDN = 'https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js';
 
-  // ─── 加载 Showdown ───
+  var ALLOWED_TAGS = [
+    'h1','h2','h3','h4','h5','h6','p','br','hr','div','span',
+    'blockquote','pre','code','em','strong','b','i','u','s','del','ins',
+    'a','img','ul','ol','li','dl','dt','dd',
+    'table','thead','tbody','tfoot','tr','th','td','caption',
+    'input','label','sup','sub','details','summary','abbr','mark'
+  ];
+
+  var ALLOWED_ATTRS = [
+    'href','src','alt','title','class','id','target','rel',
+    'colspan','rowspan','align','valign','width','height',
+    'type','checked','disabled','for','name','value',
+    'start','reversed','datetime'
+  ];
+
+  var converter = null;
+
   function loadShowdown() {
     return new Promise(function (resolve, reject) {
       if (window.showdown && window.showdown.Converter) {
@@ -41,7 +57,6 @@
     });
   }
 
-  // ─── 去除公共缩进 ───
   function dedent(text) {
     var lines = text.replace(/^\n/, '').replace(/\n\s*$/, '').split('\n');
     var minIndent = Infinity;
@@ -58,17 +73,38 @@
     return lines.join('\n');
   }
 
-  // ─── 基础 HTML 净化（防 XSS）───
   function sanitize(html) {
-    return html
-      .replace(/<script[\s\S]*?<\/script>/gi, '')
-      .replace(/on\w+="[^"]*"/gi, '')
-      .replace(/on\w+='[^']*'/gi, '')
-      .replace(/javascript:/gi, '');
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    var walk = function (node) {
+      var children = [];
+      for (var i = 0; i < node.childNodes.length; i++) {
+        children.push(node.childNodes[i]);
+      }
+      for (var j = 0; j < children.length; j++) {
+        var child = children[j];
+        if (child.nodeType === 1) {
+          var tag = child.tagName.toLowerCase();
+          if (ALLOWED_TAGS.indexOf(tag) === -1) {
+            while (child.firstChild) node.insertBefore(child.firstChild, child);
+            node.removeChild(child);
+          } else {
+            var attrs = Array.prototype.slice.call(child.attributes);
+            for (var k = attrs.length - 1; k >= 0; k--) {
+              var attrName = attrs[k].name.toLowerCase();
+              if (ALLOWED_ATTRS.indexOf(attrName) === -1) {
+                child.removeAttribute(attrs[k].name);
+              }
+            }
+            walk(child);
+          }
+        }
+      }
+    };
+    walk(doc.body);
+    return doc.body.innerHTML;
   }
 
-  // ─── 渲染单个元素 ───
-  function renderElement(elem, converter) {
+  function renderElement(elem) {
     if (elem.dataset.mdRendered) return;
     var raw = elem.textContent || elem.innerText;
     if (!raw.trim()) return;
@@ -78,45 +114,55 @@
     elem.dataset.mdRendered = '1';
   }
 
-  // ─── 主逻辑 ───
   function renderAll() {
-    var converter = new showdown.Converter({
-      tables: true,
-      strikethrough: true,
-      tasklists: true,
-      ghCodeBlocks: true,
-      simpleLineBreaks: true,
-      openLinksInNewWindow: true,
-    });
-
     var elems = document.querySelectorAll('[data-markdown]');
     for (var i = 0; i < elems.length; i++) {
-      renderElement(elems[i], converter);
+      renderElement(elems[i]);
     }
   }
 
-  // ─── 监听动态插入的元素 ───
+  function renderNewElements(addedNodes) {
+    for (var i = 0; i < addedNodes.length; i++) {
+      var node = addedNodes[i];
+      if (node.nodeType !== 1) continue;
+      if (node.matches && node.matches('[data-markdown]') && !node.dataset.mdRendered) {
+        renderElement(node);
+      }
+      if (node.querySelector) {
+        var inner = node.querySelectorAll('[data-markdown]');
+        for (var j = 0; j < inner.length; j++) {
+          if (!inner[j].dataset.mdRendered) renderElement(inner[j]);
+        }
+      }
+    }
+  }
+
   function observe() {
     if (!window.MutationObserver) return;
     var observer = new MutationObserver(function (mutations) {
-      var hasNew = false;
       for (var i = 0; i < mutations.length; i++) {
         var added = mutations[i].addedNodes;
-        for (var j = 0; j < added.length; j++) {
-          if (added[j].nodeType !== 1) continue;
-          if (added[j].matches && added[j].matches('[data-markdown]')) { hasNew = true; break; }
-          if (added[j].querySelector && added[j].querySelector('[data-markdown]')) { hasNew = true; break; }
+        if (added.length > 0) {
+          renderNewElements(added);
+          return;
         }
-        if (hasNew) break;
       }
-      if (hasNew) renderAll();
     });
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  // ─── 启动 ───
+  if (!document.querySelector('[data-markdown]')) return;
+
   loadShowdown()
     .then(function () {
+      converter = new showdown.Converter({
+        tables: true,
+        strikethrough: true,
+        tasklists: true,
+        ghCodeBlocks: true,
+        simpleLineBreaks: true,
+        openLinksInNewWindow: true,
+      });
       renderAll();
       observe();
     })

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Steam 成就 BBCode 生成器（多样式+单成就复制）
 // @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.4
 // @description  一键生成 Steam 成就列表的 BBCode，多种样式可选，支持自定义样式，支持全球成就和个人成就页面，还能复制单个成就的代码！
 // @author       chrisevansbian & SantaChains
 // @match        https://steamcommunity.com/stats/*/achievements*
@@ -287,6 +287,40 @@
     `;
     panel.appendChild(statusTip);
 
+    function clipboardCopy(text) {
+        if (typeof GM_setClipboard === 'function') {
+            GM_setClipboard(text, 'text');
+        } else if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(() => {});
+        }
+    }
+
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "✕";
+    closeBtn.title = "关闭面板";
+    closeBtn.style.cssText = `
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 24px;
+        height: 24px;
+        background: rgba(86,95,137,0.2);
+        border: none;
+        border-radius: 50%;
+        color: ${C.textMuted};
+        font-size: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+    `;
+    closeBtn.onmouseenter = () => { closeBtn.style.background = C.danger; closeBtn.style.color = '#fff'; };
+    closeBtn.onmouseleave = () => { closeBtn.style.background = 'rgba(86,95,137,0.2)'; closeBtn.style.color = C.textMuted; };
+    closeBtn.addEventListener("click", () => { panel.style.display = "none"; });
+    panel.style.position = "fixed";
+    panel.appendChild(closeBtn);
+
     document.body.appendChild(panel);
 
     // 折叠功能
@@ -299,7 +333,7 @@
             el.style.display = isCollapsed ? "none" : (el.id === "custom-area" && currentStyle !== "custom" ? "none" : "block");
         });
         toggleBtn.textContent = isCollapsed ? "+" : "−";
-        panel.style.width = isCollapsed ? "auto" : "280px";
+        panel.style.width = isCollapsed ? "auto" : "300px";
         title.style.display = "block";
     });
 
@@ -361,7 +395,7 @@
             results.push(generator(img, titleText, descText));
         }
 
-        GM_setClipboard(results.join(joinSeparator));
+        clipboardCopy(results.join(joinSeparator));
         showStatus(`✅ 已复制 ${results.length} 个成就的 BBCode！`);
     });
 
@@ -413,7 +447,7 @@
                 const generator = getBBCodeGenerator();
                 const code = generator(img, titleText, descText);
 
-                GM_setClipboard(code);
+                clipboardCopy(code);
 
                 // 临时改变按钮文字
                 const originalText = copyBtn.textContent;
@@ -434,8 +468,13 @@
     addIndividualButtons();
 
     // 监听页面变化（处理动态加载）
+    let moDebounce = null;
     const observer = new MutationObserver(() => {
-        addIndividualButtons();
+        if (moDebounce) clearTimeout(moDebounce);
+        moDebounce = setTimeout(() => {
+            addIndividualButtons();
+            moDebounce = null;
+        }, 300);
     });
     observer.observe(document.body, { childList: true, subtree: true });
 

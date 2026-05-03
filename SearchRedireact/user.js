@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         搜索引擎一键跳转
 // @namespace    http://tampermonkey.net/
-// @version      6.0
+// @version      6.1
 // @description  在搜索结果页面添加其他搜索引擎的快捷跳转按钮，支持自定义搜索引擎
 // @author       Punkjet & SantaChains
 // @match        *://*/*
@@ -195,26 +195,42 @@
 
   var SEARCH_PARAMS = ['q', 'wd', 'query', 'keyword', 'search', 'term', 'kw', 'text', 'eingabe', 'p', 'MT', 'search_query', 'searchtext'];
 
-  // ─── 工具函数 ───
+  var ENGINE_MAP = {};
+  for (var emi = 0; emi < ENGINES.length; emi++) {
+    ENGINE_MAP[ENGINES[emi].mark] = ENGINES[emi];
+  }
+
+  var SEARCH_DOMAINS = {};
+  for (var sdi = 0; sdi < ENGINES.length; sdi++) {
+    var dm = ENGINES[sdi].match.source.replace(/\\./g, '.').replace(/\.\*/g, '*').replace(/\^/g, '').replace(/\\//g, '/');
+    var hostMatch = dm.match(/(?:https?:\/\/)?([a-z0-9.*-]+)/i);
+    if (hostMatch) SEARCH_DOMAINS[hostMatch[1]] = true;
+  }
 
   function getKeyword() {
     var params = new URLSearchParams(window.location.search);
     for (var i = 0; i < SEARCH_PARAMS.length; i++) {
       var v = params.get(SEARCH_PARAMS[i]);
-      if (v) return decodeURIComponent(v);
+      if (v) return v;
     }
     var tag = window.location.href.match(/instagram\.com\/explore\/tags\/([^/?]+)/);
-    return tag ? decodeURIComponent(tag[1]) : '';
+    return tag ? tag[1] : '';
   }
 
   function isSearchPage() {
     var href = window.location.href;
+    var hostname = window.location.hostname;
     var params = new URLSearchParams(window.location.search);
     var hasParam = false;
     for (var i = 0; i < SEARCH_PARAMS.length; i++) {
       if (params.has(SEARCH_PARAMS[i])) { hasParam = true; break; }
     }
     if (!hasParam && href.indexOf('instagram.com/explore/tags/') === -1) return false;
+    var domainMatch = false;
+    for (var key in SEARCH_DOMAINS) {
+      if (hostname === key || hostname.endsWith('.' + key)) { domainMatch = true; break; }
+    }
+    if (!domainMatch) return false;
     return ENGINES.some(function (e) { return e.match.test(href); });
   }
 
@@ -352,7 +368,7 @@
     var wrap = el('div', null, 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;');
 
     enabled.forEach(function (mark) {
-      var eng = ENGINES.find(function (e) { return e.mark === mark; });
+      var eng = ENGINE_MAP[mark];
       if (!eng) return;
       var isActive = eng.match.test(href);
       var a = el('a', 'punk-eng' + (isActive ? ' punk-eng-active' : ''));
@@ -468,7 +484,7 @@
       GM_setValue('punk_quick_search_position', {
         left: parseInt(trigger.style.left), bottom: parseInt(trigger.style.bottom),
       });
-      if (hasDrag) openQuickSearch();
+      if (hasDrag) { hasDrag = false; return; }
     }
 
     trigger.addEventListener('mousedown', function (e) {
@@ -518,7 +534,7 @@
     var wrap = el('div', null, 'display:flex;flex-wrap:wrap;gap:6px;');
 
     enabled.forEach(function (mark) {
-      var eng = ENGINES.find(function (e) { return e.mark === mark; });
+      var eng = ENGINE_MAP[mark];
       if (!eng) return;
       var b = el('button', 'punk-pop-btn');
       b.textContent = eng.name;
@@ -624,6 +640,7 @@
 
     var allTabs = QUICK_TABS.concat([{ tab: '设置', isSettings: true }]);
     var activeTab = null;
+    var selectedEngine = presetEngine || null;
 
     function activateTab(tabBtn, config) {
       tabBar.querySelectorAll('.punk-tab').forEach(function (b) { b.classList.remove('punk-tab-active'); });
@@ -646,6 +663,7 @@
       list.forEach(function (item) {
         var b = el('button', 'punk-grid-btn');
         b.textContent = item.name;
+        b.addEventListener('mouseenter', function () { selectedEngine = item; });
         b.addEventListener('click', function () {
           var kw = input.value.trim();
           if (kw) window.open(item.url + encodeURIComponent(kw), '_blank');
@@ -744,7 +762,13 @@
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
         var k = input.value.trim();
-        if (k) window.open('https://www.google.com/search?q=' + encodeURIComponent(k), '_blank');
+        if (!k) return;
+        if (selectedEngine) {
+          window.open(selectedEngine.url + encodeURIComponent(k), '_blank');
+        } else {
+          var firstBtn = div.querySelector('.punk-pop-btn');
+          if (firstBtn) firstBtn.click();
+        }
       }
     });
 

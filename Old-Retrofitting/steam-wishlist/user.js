@@ -292,12 +292,22 @@
     };
 
     // 等待页面加载
-    const waitForPage = setInterval(() => {
+    const waitForPage = (callback) => {
         if (document.querySelector('.wishlist_header') || document.querySelector('#wishlist_controls')) {
-            clearInterval(waitForPage);
-            insertButton();
+            callback();
+            return;
         }
-    }, 500);
+        const observer = new MutationObserver(() => {
+            if (document.querySelector('.wishlist_header') || document.querySelector('#wishlist_controls')) {
+                observer.disconnect();
+                callback();
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+        setTimeout(() => { observer.disconnect(); }, 10000);
+    };
+
+    waitForPage(insertButton);
 
     // ==================== 数据表格区域 ====================
     document.querySelector('body').insertAdjacentHTML('beforeend', `
@@ -366,7 +376,10 @@
     `);
 
     // ==================== 核心功能 ====================
-    async function xhr(xhr_data) {
+    const XHR_MAX_RETRIES = 3;
+
+    async function xhr(xhr_data, _retries) {
+        const retries = _retries || 0;
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: "GET",
@@ -374,12 +387,12 @@
                 responseType: xhr_data.type || 'json',
                 timeout: 15000,
                 onload: (res) => {
-                    if (res.status === 429) {
-                        console.log('429 限流，等待 30 秒后重试...');
-                        setTimeout(() => resolve(xhr(xhr_data)), 30000);
-                    } else if (res.status >= 500) {
-                        console.log(res.status, '服务器错误，5秒后重试');
-                        setTimeout(() => resolve(xhr(xhr_data)), 5000);
+                    if (res.status === 429 && retries < XHR_MAX_RETRIES) {
+                        console.log('429 限流，等待 30 秒后重试...', retries + 1);
+                        setTimeout(() => resolve(xhr(xhr_data, retries + 1)), 30000);
+                    } else if (res.status >= 500 && retries < XHR_MAX_RETRIES) {
+                        console.log(res.status, '服务器错误，5秒后重试', retries + 1);
+                        setTimeout(() => resolve(xhr(xhr_data, retries + 1)), 5000);
                     } else {
                         resolve(res);
                     }
@@ -389,8 +402,12 @@
                     reject(e);
                 },
                 ontimeout: () => {
-                    console.log('请求超时，重试中...');
-                    resolve(xhr(xhr_data));
+                    if (retries < XHR_MAX_RETRIES) {
+                        console.log('请求超时，重试中...', retries + 1);
+                        resolve(xhr(xhr_data, retries + 1));
+                    } else {
+                        reject(new Error('请求超时，已达最大重试次数'));
+                    }
                 }
             });
         });
@@ -401,6 +418,9 @@
         constructor() {
             this.games = [];
             this.steamId = this.getSteamId();
+            if (!this.steamId) {
+                throw new Error('无法获取 Steam ID，请确认已登录 Steam');
+            }
             this.baseUrl = `https://store.steampowered.com/wishlist/profiles/${this.steamId}/wishlistdata/`;
         }
 
@@ -560,14 +580,14 @@
                 { cc: 'ru', code: 'ru' },
                 { cc: 'ar', code: 'ar' }
             ];
-            
-            for (const region of regions) {
+
+            const tasks = regions.map(async (region) => {
                 try {
                     const res = await xhr({
                         url: `https://store.steampowered.com/api/appdetails?appids=${this.appid}&cc=${region.cc}`,
                         type: 'json'
                     });
-                    
+
                     const data = res.response[this.appid];
                     if (data?.success && data.data?.price_overview) {
                         this.priceData.price[region.code] = {
@@ -579,7 +599,9 @@
                 } catch (e) {
                     console.log(`获取 ${region.cc} 区价格失败`);
                 }
-            }
+            });
+
+            await Promise.all(tasks);
         }
 
         async fetchLowestPrice() {
@@ -711,7 +733,7 @@
         
         // HTML 行
         const html = `
-            <tr class="${rowClass}" data-discount="${cnPrice.discount || 0}" data-pricecn="${cnPrice.current || 99999}">
+            <tr class="${rowClass}" data-discount="${cnPrice.discount || 0}" data-pricecn="${cnPrice.current || 99999}" data-deal-rating="${game.getDealRating()}">
                 <td data-priority="${game.priority}">${game.priority}</td>
                 <td data-game="${game.name}" data-name="${game.name.toLowerCase()}">
                     <a href="https://store.steampowered.com/app/${game.appid}/" target="_blank">${game.name}</a>
@@ -761,7 +783,13 @@
         updatePopupText('正在获取愿望单数据...');
         
         // 获取愿望单
-        wishlist = new Wishlist();
+        try {
+            wishlist = new Wishlist();
+        } catch (e) {
+            updatePopupText(e.message || '获取 Steam ID 失败，请确认已登录 Steam。');
+            isLoading = false;
+            return;
+        }
         const wishlistGames = await wishlist.fetchAllGames();
         
         if (wishlistGames.length === 0) {
@@ -889,7 +917,8 @@
                     shouldHide = true;
                 }
                 if (value === 'filter-lowest' && e.target.checked) {
-                    // 需要额外判断是否为史低
+                    const dealRating = row.querySelector('[data-deal-rating]')?.dataset.dealRating;
+                    if (dealRating !== 'excellent') shouldHide = true;
                 }
                 if (value === 'filter-gooddeal' && e.target.checked && discount < 50) {
                     shouldHide = true;

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         B站字幕下载器 Pro
 // @namespace    https://github.com/...
-// @version      2.0.0
+// @version      2.1.0
 // @description  下载B站视频字幕（JSON/SRT），支持多P和语言选择，可通过菜单重新显示面板
 // @author       You
 // @match        https://www.bilibili.com/video/*
@@ -27,17 +27,18 @@
     function waitForInitialState() {
         return new Promise((resolve) => {
             if (window.__INITIAL_STATE__) return resolve(window.__INITIAL_STATE__);
-            const observer = new MutationObserver(() => {
+            let elapsed = 0;
+            const interval = 200;
+            const timer = setInterval(() => {
+                elapsed += interval;
                 if (window.__INITIAL_STATE__) {
-                    observer.disconnect();
+                    clearInterval(timer);
                     resolve(window.__INITIAL_STATE__);
+                } else if (elapsed >= 5000) {
+                    clearInterval(timer);
+                    resolve(null);
                 }
-            });
-            observer.observe(document.documentElement, { childList: true, subtree: true });
-            setTimeout(() => {
-                observer.disconnect();
-                resolve(null);
-            }, 5000);
+            }, interval);
         });
     }
 
@@ -107,7 +108,9 @@
                     partName,
                     subtitles: subtitles.map(sub => ({
                         lan: sub.lan,
-                        url: 'https:' + sub.subtitle_url
+                        url: sub.subtitle_url.startsWith('//') ? 'https:' + sub.subtitle_url
+                           : sub.subtitle_url.startsWith('http') ? sub.subtitle_url
+                           : 'https://' + sub.subtitle_url
                     }))
                 });
             }
@@ -171,12 +174,20 @@
 
         const header = document.createElement('div');
         header.style.cssText = `display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid ${C.glassBorder}; font-weight: 600; color: ${C.primary};`;
-        header.innerHTML = `<span style="display:flex;align-items:center;gap:6px;"><span style="font-size:16px;">📥</span> 字幕下载器</span><span style="cursor:pointer;color:${C.textMuted};transition:color 0.15s;" id="close-panel-btn" onmouseover="this.style.color='${C.primary}'" onmouseout="this.style.color='${C.textMuted}'">✖</span>`;
-        const closeBtn = header.querySelector('#close-panel-btn');
-        closeBtn.onclick = () => {
+        const headerLeft = document.createElement('span');
+        headerLeft.style.cssText = 'display:flex;align-items:center;gap:6px;';
+        headerLeft.innerHTML = '<span style="font-size:16px;">📥</span> 字幕下载器';
+        const closeBtn = document.createElement('span');
+        closeBtn.textContent = '✖';
+        closeBtn.style.cssText = `cursor:pointer;color:${C.textMuted};transition:color 0.15s;`;
+        closeBtn.addEventListener('mouseenter', () => { closeBtn.style.color = C.primary; });
+        closeBtn.addEventListener('mouseleave', () => { closeBtn.style.color = C.textMuted; });
+        closeBtn.addEventListener('click', () => {
             panel.style.display = 'none';
             isPanelVisible = false;
-        };
+        });
+        header.appendChild(headerLeft);
+        header.appendChild(closeBtn);
         panel.appendChild(header);
 
         if (currentSubtitleGroups.length === 0) {
