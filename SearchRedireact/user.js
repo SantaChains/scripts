@@ -7,6 +7,7 @@
 // @match        *://*/*
 // @grant        GM_setValue
 // @grant        GM_getValue
+// @grant        unsafeWindow
 // @noframes
 // @run-at       document-idle
 // @updateURL    https://raw.githubusercontent.com/SantaChains/scripts/main/SearchRedireact/meta.js
@@ -16,6 +17,9 @@
 
 (function () {
   'use strict';
+
+  // 防止 Tampermonkey Proxy 冲突
+  var win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
 
   // ─── 配色系统（Nerd Dark — Tokyo Night × Dracula）───
   var C = {
@@ -202,25 +206,33 @@
 
   var SEARCH_DOMAINS = {};
   for (var domainIndex = 0; domainIndex < ENGINES.length; domainIndex++) {
-    var domainPattern = ENGINES[domainIndex].match.source.replace(/\\./g, '.').replace(/\.\*/g, '*').replace(/\^/g, '').replace(/\\//g, '/');
-    var hostMatch = domainPattern.match(/(?:https?:\/\/)?([a-z0-9.*-]+)/i);
-    if (hostMatch) SEARCH_DOMAINS[hostMatch[1]] = true;
+    var matchPattern = ENGINES[domainIndex].match;
+    var hostMatch = matchPattern.toString().match(/\/\^?(?:https\\?:\\?\/\\?\/)?([^\\\/]+)/);
+    if (hostMatch) {
+      var domain = hostMatch[1].replace(/\\\./g, '.').replace(/\.\*/g, '*');
+      SEARCH_DOMAINS[domain] = true;
+      var parts = domain.split('.');
+      if (parts.length > 2) {
+        var rootDomain = parts.slice(-2).join('.');
+        SEARCH_DOMAINS[rootDomain] = true;
+      }
+    }
   }
 
   function getKeyword() {
-    var params = new URLSearchParams(window.location.search);
+    var params = new URLSearchParams(win.location.search);
     for (var i = 0; i < SEARCH_PARAMS.length; i++) {
       var v = params.get(SEARCH_PARAMS[i]);
       if (v) return v;
     }
-    var tag = window.location.href.match(/instagram\.com\/explore\/tags\/([^/?]+)/);
+    var tag = win.location.href.match(/instagram\.com\/explore\/tags\/([^/?]+)/);
     return tag ? tag[1] : '';
   }
 
   function isSearchPage() {
-    var href = window.location.href;
-    var hostname = window.location.hostname;
-    var params = new URLSearchParams(window.location.search);
+    var href = win.location.href;
+    var hostname = win.location.hostname;
+    var params = new URLSearchParams(win.location.search);
     var hasParam = false;
     for (var i = 0; i < SEARCH_PARAMS.length; i++) {
       if (params.has(SEARCH_PARAMS[i])) { hasParam = true; break; }
@@ -268,7 +280,8 @@
         onEnd: null,
         threshold: 5,
         savePosition: null,
-        getInitialPosition: null
+        getInitialPosition: null,
+        useBottom: false
       }, options);
 
       var isDragging = false;
@@ -279,6 +292,8 @@
       var elementStartY = 0;
       var rafId = null;
       var clickStartTime = 0;
+      var mouseMoveHandler = null;
+      var mouseUpHandler = null;
 
       function onMouseMove(e) {
         if (!isDragging || rafId) return;
@@ -300,8 +315,8 @@
         isDragging = false;
         element.classList.remove('punk-dragging');
         element.style.cursor = 'move';
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
+        document.removeEventListener('mousemove', mouseMoveHandler);
+        document.removeEventListener('mouseup', mouseUpHandler);
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
         if (config.onEnd) config.onEnd(hasDragged);
         if (config.savePosition && hasDragged) {
@@ -317,11 +332,13 @@
         startY = e.clientY;
         var initialPos = config.getInitialPosition ? config.getInitialPosition() : { x: 0, y: 0 };
         elementStartX = initialPos.x;
-        elementStartY = initialPos.y;
+        elementStartY = config.useBottom ? initialPos.y : initialPos.y;
         element.classList.add('punk-dragging');
         element.style.cursor = 'grabbing';
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
+        mouseMoveHandler = onMouseMove;
+        mouseUpHandler = onMouseUp;
+        document.addEventListener('mousemove', mouseMoveHandler);
+        document.addEventListener('mouseup', mouseUpHandler);
         e.preventDefault();
       }
 
@@ -332,8 +349,12 @@
         resetDrag: function () { hasDragged = false; },
         getClickDuration: function () { return Date.now() - clickStartTime; },
         cleanup: function () {
-          document.removeEventListener('mousemove', onMouseMove);
-          document.removeEventListener('mouseup', onMouseUp);
+          element.removeEventListener('mousedown', onMouseDown);
+          document.removeEventListener('mousemove', mouseMoveHandler);
+          document.removeEventListener('mouseup', mouseUpHandler);
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+          var idx = DragManager.activeHandlers.indexOf(handler);
+          if (idx > -1) DragManager.activeHandlers.splice(idx, 1);
         }
       };
 
@@ -349,9 +370,11 @@
 
   // ─── 单例 CSS 注入（Glassmorphism + 交互 + 无障碍）───
   function injectCSS() {
-    if (document.getElementById('punk-css')) return;
+    if (document.getElementById('punk-css') || win.__punkCssInjected) return;
+    win.__punkCssInjected = true;
     var s = document.createElement('style');
     s.id = 'punk-css';
+    s.dataset.version = '6.3';
     s.textContent = [
       '@keyframes punkIn{from{opacity:0;transform:translate(-50%,-50%) scale(.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}',
       '@keyframes punkSlide{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}',
@@ -420,7 +443,7 @@
     if (!keyword) return;
 
     var enabled = getEnabledMarks();
-    var href = window.location.href;
+    var href = win.location.href;
     var pos = GM_getValue('punk_search_position', { x: 10, y: 10 });
     var expanded = GM_getValue('punk_search_expanded', false);
 
@@ -477,8 +500,8 @@
     var isExpanded = expanded;
     var dragHandler = DragManager.create(btn, {
       onMove: function (e, deltaX, deltaY, elemStartX, elemStartY) {
-        box.style.left = Math.max(0, Math.min(window.innerWidth - 100, elemStartX + deltaX)) + 'px';
-        box.style.top = Math.max(0, Math.min(window.innerHeight - 50, elemStartY + deltaY)) + 'px';
+        box.style.left = Math.max(0, Math.min(win.innerWidth - 100, elemStartX + deltaX)) + 'px';
+        box.style.top = Math.max(0, Math.min(win.innerHeight - 50, elemStartY + deltaY)) + 'px';
       },
       savePosition: function () {
         GM_setValue('punk_search_position', { x: parseInt(box.style.left), y: parseInt(box.style.top) });
@@ -524,9 +547,10 @@
     trigger.id = 'punk-qs-trigger';
 
     var dragHandler = DragManager.create(trigger, {
+      useBottom: true,
       onMove: function (e, deltaX, deltaY, elemStartLeft, elemStartBottom) {
-        trigger.style.left = Math.max(0, Math.min(elemStartLeft + deltaX, window.innerWidth - 50)) + 'px';
-        trigger.style.bottom = Math.max(0, Math.min(elemStartBottom - deltaY, window.innerHeight - 50)) + 'px';
+        trigger.style.left = Math.max(0, Math.min(elemStartLeft + deltaX, win.innerWidth - 50)) + 'px';
+        trigger.style.bottom = Math.max(0, Math.min(elemStartBottom + deltaY, win.innerHeight - 50)) + 'px';
       },
       savePosition: function () {
         GM_setValue('punk_quick_search_position', {
@@ -847,32 +871,52 @@
 
   // ─── 初始化 ───
   function init() {
-    injectCSS();
-    if (isSearchPage()) initSearchPage();
-    else initQuickSearch();
+    try {
+      injectCSS();
+      var isSearch = isSearchPage();
+      console.log('[搜索引擎一键跳转] 当前页面是否为搜索页:', isSearch);
+      if (isSearch) {
+        initSearchPage();
+      } else {
+        initQuickSearch();
+      }
 
-    if (!window.__punkEsc) {
-      document.addEventListener('keydown', function (e) {
-        if (e.key !== 'Escape') return;
-        var qs = document.getElementById('punk-qs');
-        if (qs) { qs.remove(); return; }
-        var jp = document.getElementById('punk-jump-panel');
-        if (jp) {
-          jp.remove();
-          if (activePanelHandler) {
-            document.removeEventListener('click', activePanelHandler);
-            activePanelHandler = null;
+      if (!win.__punkEsc) {
+        win.__punkKeydownHandler = function (e) {
+          if (e.key !== 'Escape') return;
+          var qs = document.getElementById('punk-qs');
+          if (qs) { qs.remove(); return; }
+          var jp = document.getElementById('punk-jump-panel');
+          if (jp) {
+            jp.remove();
+            if (activePanelHandler) {
+              document.removeEventListener('click', activePanelHandler);
+              activePanelHandler = null;
+            }
           }
-        }
-      });
-      window.__punkEsc = true;
+        };
+        document.addEventListener('keydown', win.__punkKeydownHandler);
+        win.__punkEsc = true;
+      }
+      console.log('[搜索引擎一键跳转] 初始化完成');
+    } catch (e) {
+      console.error('[搜索引擎一键跳转] init 错误:', e);
+      throw e;
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
+  function start() {
+    try {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    } catch (e) {
+      console.error('[搜索引擎一键跳转] 初始化失败:', e);
+    }
   }
+
+  start();
 
 })();
