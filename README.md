@@ -2,6 +2,16 @@
 
 Tampermonkey 油猴用户脚本 — 在搜索结果页面添加其他搜索引擎的快捷跳转按钮，非搜索页面提供「星际搜索」快捷搜索面板。
 
+> **当前版本 v5.0** | Glassmorphism 毛玻璃设计 · SVG 图标 · 50+ 搜索引擎 · 拖拽面板 · 分类快捷搜索
+
+## 一键安装
+
+> 需先安装 [Tampermonkey](https://www.tampermonkey.net/) 浏览器扩展
+
+[点此安装脚本](https://cdn.jsdelivr.net/gh/SantaChains/scripts@latest/SearchRedireact/user.js)
+
+> 安装后 Tampermonkey 会自动检测并弹出安装确认。后续更新通过 jsDelivr CDN 自动推送。
+
 ## 功能
 
 - 搜索页面自动识别关键词，在页面上显示可跳转的其他搜索引擎按钮
@@ -10,13 +20,6 @@ Tampermonkey 油猴用户脚本 — 在搜索结果页面添加其他搜索引�
 - 按钮可拖拽，位置自动保存
 - 预设配置：国内预设、国际预设、图片预设、壁纸预设、全部预设
 - 自定义启用/禁用搜索引擎
-
-## 安装
-
-1. 安装 [Tampermonkey](https://www.tampermonkey.net/) 浏览器扩展
-2. 打开 Tampermonkey 控制台，新建脚本
-3. 将 `SearchRedireact/user.js` 的内容粘贴进去并保存
-4. 或者将 `SearchRedireact/meta.js` 的元数据与 `user.js` 的代码合并后安装
 
 ## 使用
 
