@@ -4,13 +4,28 @@ Tampermonkey 油猴用户脚本 — 在搜索结果页面添加其他搜索引�
 
 > **当前版本 v5.0** | Glassmorphism 毛玻璃设计 · SVG 图标 · 50+ 搜索引擎 · 拖拽面板 · 分类快捷搜索
 
-## 一键安装
+## 安装
 
-> 需先安装 [Tampermonkey](https://www.tampermonkey.net/) 浏览器扩展
+### 第一步：安装 Tampermonkey 扩展
 
-[点此安装脚本](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/SearchRedireact/user.js)
+[Tampermonkey 官网下载](https://www.tampermonkey.net/)
 
-> 点击链接后 Tampermonkey 自动弹出安装确认。后续更新自动推送。
+### 第二步：安装脚本
+
+> Chrome/Edge 等 Chromium 浏览器可能阻止直接安装，请使用以下方式之一：
+
+**方式一：通过 Tampermonkey 仪表盘安装（推荐）**
+
+1. 复制脚本代码：[user.js](https://raw.githubusercontent.com/SantaChains/scripts/main/SearchRedireact/user.js)
+2. 点击浏览器 Tampermonkey 图标 → **添加新脚本**
+3. 清空编辑区，粘贴复制的代码
+4. 按 `Ctrl + S` 保存
+
+**方式二：GitHub 直接安装**
+
+[点击安装脚本](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SantaChains/scripts/raw/main/SearchRedireact/user.js)
+
+> 若浏览器阻止，请使用方式一。后续更新自动推送。
 
 ## 功能
 
