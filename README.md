@@ -18,7 +18,7 @@ Tampermonkey 油猴用户脚本合集。
 
 在搜索结果页面添加其他搜索引擎的快捷跳转按钮，非搜索页面提供「星际搜索」快捷搜索面板。
 
-> v6.2 | Nerd Dark 终端主题 · 50+ 搜索引擎 · 拖拽面板 · 分类快捷搜索
+> v6.3 | Nerd Dark 终端主题 · 50+ 搜索引擎 · 拖拽面板 · 分类快捷搜索
 
 [GitHub 安装](https://github.com/SantaChains/scripts/raw/main/SearchRedireact/user.js) | [源码](SearchRedireact/user.js) | [说明](SearchRedireact/use.md)
 

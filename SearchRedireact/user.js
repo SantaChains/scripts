@@ -112,7 +112,7 @@
     { name: 'Brave', url: 'https://search.brave.com/search?q=', key: 'q', match: /search\.brave\.com\/search.*?q=/, mark: 'Brave' },
     { name: 'YouTube', url: 'https://www.youtube.com/results?search_query=', key: 'search_query', match: /youtube\.com\/results.*?search_query=/, mark: 'YouTube' },
     { name: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Special:Search?search=', key: 'search', match: /en\.wikipedia\.org\/wiki\/Special:Search.*?search=/, mark: 'Wikipedia' },
-    { name: 'Instagram', url: 'https://www.instagram.com/explore/tags/', key: '_tags', match: /instagram\.com\/explore\/tags\//, mark: 'Instagram' },
+    { name: 'Instagram', url: 'https://www.instagram.com/explore/tags/', key: '', match: /instagram\.com\/explore\/tags\//, mark: 'Instagram' },
     { name: 'Tiktok', url: 'https://www.tiktok.com/search?q=', key: 'q', match: /tiktok\.com\/search.*?q=/, mark: 'Tiktok' },
     { name: 'Yandex图片', url: 'https://yandex.com/images/search?text=', key: 'text', match: /yandex\.com\/images\/search.*?text=/, mark: 'YandexImage' },
     { name: 'Bilibili', url: 'https://search.bilibili.com/all?keyword=', key: 'keyword', match: /search\.bilibili\.com\/all.*?keyword=/, mark: 'Bilibili' },
