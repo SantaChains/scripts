@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         搜索引擎一键跳转
 // @namespace    http://tampermonkey.net/
-// @version      6.3
+// @version      6.4
 // @description  在搜索结果页面添加其他搜索引擎的快捷跳转按钮，支持自定义搜索引擎
 // @author       Punkjet & SantaChains
 // @match        *://*/*
@@ -56,13 +56,13 @@
     search: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
   };
 
-  // ─── 预设标记 ───
+  // ─── 预设标记（用 | 分隔，避免与 mark 名中的 - 冲突）───
   var PRESETS = {
-    default: 'Google-Github-Steam-Bing-MitaAI-GoogleScholar-Searx-Bilibili-Zhihu-Weibo-Douban-Quark-Sougou-SougouWeixin-360ai-wallpaper',
-    international: 'GooglePatents-Bing-Yahoo-Yandex-DuckDuckGo-YouTube-Wikipedia-Instagram-Qwant-Tiktok',
-    image: 'SougouImage-Google-YandexImage-wallpaper-Pixabay-Pexels',
-    wallpaper: 'wallpaper-Pixabay-Pexels-WallpaperEngine',
-    all: 'Baidu-Bing-360-Quark-Toutiao-Weibo-Zhihu-Douban-MitaAI-Sougou-wallpaper-Pixabay-Pexels-WallpaperEngine-SougouWeixin-Steam-Github-Google-GoogleScholar-SougouImage-SougouXiaohongshu-GooglePatents-Yahoo-Yandex-DuckDuckGo-Swisscows-MetaGer-Searx-Qwant-Ecosia-WolframAlpha-Perplexity-Kagi-Claude-Perplexity-Pro-ChatGPT-Sage-Naver-Daum-Goo-Startpage-Fsou-Ask-AOL-QwantLite-Brave-YouTube-Wikipedia-Instagram-Tiktok-360ai-YandexImage',
+    default: 'Google|Github|Steam|Bing|MitaAI|GoogleScholar|Searx|Bilibili|Zhihu|Weibo|Douban|Quark|Sougou|SougouWeixin|360ai|wallpaper',
+    international: 'GooglePatents|Bing|Yahoo|Yandex|DuckDuckGo|YouTube|Wikipedia|Instagram|Qwant|Tiktok',
+    image: 'SougouImage|Google|YandexImage|wallpaper|Pixabay|Pexels',
+    wallpaper: 'wallpaper|Pixabay|Pexels|WallpaperEngine',
+    all: 'Baidu|Bing|360|Quark|Toutiao|Weibo|Zhihu|Douban|MitaAI|Sougou|wallpaper|Pixabay|Pexels|WallpaperEngine|SougouWeixin|Steam|Github|Google|GoogleScholar|SougouImage|SougouXiaohongshu|GooglePatents|Yahoo|Yandex|DuckDuckGo|Swisscows|MetaGer|Searx|Qwant|Ecosia|WolframAlpha|Perplexity|Kagi|Claude|Perplexity-Pro|ChatGPT|Sage|Naver|Daum|Goo|Startpage|Fsou|Ask|AOL|QwantLite|Brave|YouTube|Wikipedia|Instagram|Tiktok|360ai|YandexImage',
   };
 
   // ─── 搜索引擎配置 ───
@@ -79,10 +79,10 @@
     { name: '搜狗', url: 'https://www.sogou.com/web?query=', key: 'query', match: /sogou\.com\/web.*?query=/, mark: 'Sougou' },
     { name: '搜狗微信', url: 'https://weixin.sogou.com/weixin?type=2&query=', key: 'query', match: /weixin\.sogou\.com\/weixin.*?query=/, mark: 'SougouWeixin' },
     { name: '360AI', url: 'https://www.360.com/search?q=', key: 'q', match: /360\.com\/search.*?q=/, mark: '360ai' },
-    { name: 'Unsplash', url: 'https://unsplash.com/s/photos/', key: 'q', match: /unsplash\.com\/s\/photos\//, mark: 'wallpaper' },
-    { name: 'Pixabay', url: 'https://pixabay.com/zh/images/search/', key: 'q', match: /pixabay\.com\/zh\/images\/search\//, mark: 'Pixabay' },
+    { name: 'Unsplash', url: 'https://unsplash.com/s/photos/', key: '', match: /unsplash\.com\/s\/photos\//, mark: 'wallpaper', suffix: '/' },
+    { name: 'Pixabay', url: 'https://pixabay.com/zh/images/search/', key: '', match: /pixabay\.com\/zh\/images\/search\//, mark: 'Pixabay', suffix: '/' },
     { name: 'Wallpaper Engine', url: 'https://steamcommunity.com/workshop/browse/?appid=431960&searchtext=', key: 'searchtext', match: /steamcommunity\.com\/workshop\/browse.*?searchtext=/, mark: 'WallpaperEngine' },
-    { name: 'Pexels', url: 'https://www.pexels.com/search/', key: 'query', match: /pexels\.com\/search\//, mark: 'Pexels' },
+    { name: 'Pexels', url: 'https://www.pexels.com/search/', key: '', match: /pexels\.com\/search\//, mark: 'Pexels', suffix: '/' },
     { name: 'Steam', url: 'https://store.steampowered.com/search/?term=', key: 'term', match: /store\.steampowered\.com\/search.*?term=/, mark: 'Steam' },
     { name: 'Github', url: 'https://github.com/search?q=', key: 'q', match: /github\.com\/search.*?q=/, mark: 'Github' },
     { name: 'Google', url: 'https://www.google.com/search?q=', key: 'q', match: /google\.com\/search.*?q=/, mark: 'Google' },
@@ -225,8 +225,17 @@
       var v = params.get(SEARCH_PARAMS[i]);
       if (v) return v;
     }
-    var tag = win.location.href.match(/instagram\.com\/explore\/tags\/([^/?]+)/);
-    return tag ? tag[1] : '';
+    var href = win.location.href;
+    for (var j = 0; j < ENGINES.length; j++) {
+      var eng = ENGINES[j];
+      if (eng.key || !eng.suffix) continue;
+      if (href.indexOf(eng.url) !== 0) continue;
+      var rest = href.substring(eng.url.length);
+      if (eng.suffix) rest = rest.replace(new RegExp(eng.suffix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'), '');
+      var seg = rest.split(/[/?#]/)[0];
+      if (seg) return decodeURIComponent(seg);
+    }
+    return '';
   }
 
   function isSearchPage() {
@@ -237,7 +246,10 @@
     for (var i = 0; i < SEARCH_PARAMS.length; i++) {
       if (params.has(SEARCH_PARAMS[i])) { hasParam = true; break; }
     }
-    if (!hasParam && href.indexOf('instagram.com/explore/tags/') === -1) return false;
+    if (!hasParam) {
+      var hasPathKeyword = ENGINES.some(function (e) { return !e.key && e.suffix && href.indexOf(e.url) === 0; });
+      if (!hasPathKeyword) return false;
+    }
     var domainMatch = false;
     for (var key in SEARCH_DOMAINS) {
       if (hostname === key || hostname.endsWith('.' + key)) { domainMatch = true; break; }
@@ -247,7 +259,7 @@
   }
 
   function getEnabledMarks() {
-    return GM_getValue('punk_setup_search', PRESETS.default).split('-');
+    return GM_getValue('punk_setup_search', PRESETS.default).split('|');
   }
 
   function el(tag, cls, styles, attrs) {
@@ -270,7 +282,7 @@
     return url;
   }
 
-  // ─── 通用拖拽管理器 ───
+  // ─── 通用拖拽管理器（支持鼠标 + 触摸）───
   var DragManager = {
     activeHandlers: [],
 
@@ -280,8 +292,7 @@
         onEnd: null,
         threshold: 5,
         savePosition: null,
-        getInitialPosition: null,
-        useBottom: false
+        getInitialPosition: null
       }, options);
 
       var isDragging = false;
@@ -290,63 +301,72 @@
       var startY = 0;
       var elementStartX = 0;
       var elementStartY = 0;
-      var clickStartTime = 0;
-      var mouseMoveHandler = null;
-      var mouseUpHandler = null;
+      var moveHandler = null;
+      var endHandler = null;
 
-      function onMouseMove(e) {
+      function getPoint(e) {
+        if (e.touches && e.touches.length) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        return { x: e.clientX, y: e.clientY };
+      }
+
+      function onMove(e) {
         if (!isDragging) return;
-        var deltaX = e.clientX - startX;
-        var deltaY = e.clientY - startY;
+        var p = getPoint(e);
+        var deltaX = p.x - startX;
+        var deltaY = p.y - startY;
         if (Math.abs(deltaX) > config.threshold || Math.abs(deltaY) > config.threshold) {
           hasDragged = true;
         }
-        if (config.onMove) {
-          config.onMove(e, deltaX, deltaY, elementStartX, elementStartY);
-        }
+        if (config.onMove) config.onMove(e, deltaX, deltaY, elementStartX, elementStartY);
+        if (hasDragged) e.preventDefault();
       }
 
-      function onMouseUp() {
+      function onEnd() {
         if (!isDragging) return;
         isDragging = false;
         element.classList.remove('punk-dragging');
         element.style.cursor = 'move';
-        document.removeEventListener('mousemove', mouseMoveHandler);
-        document.removeEventListener('mouseup', mouseUpHandler);
+        document.removeEventListener('mousemove', moveHandler);
+        document.removeEventListener('mouseup', endHandler);
+        document.removeEventListener('touchmove', moveHandler);
+        document.removeEventListener('touchend', endHandler);
         if (config.onEnd) config.onEnd(hasDragged);
-        if (config.savePosition && hasDragged) {
-          config.savePosition();
-        }
+        if (config.savePosition && hasDragged) config.savePosition();
       }
 
-      function onMouseDown(e) {
+      function onStart(e) {
         isDragging = true;
         hasDragged = false;
-        clickStartTime = Date.now();
-        startX = e.clientX;
-        startY = e.clientY;
+        var p = getPoint(e);
+        startX = p.x;
+        startY = p.y;
         var initialPos = config.getInitialPosition ? config.getInitialPosition() : { x: 0, y: 0 };
         elementStartX = initialPos.x;
         elementStartY = initialPos.y;
         element.classList.add('punk-dragging');
         element.style.cursor = 'grabbing';
-        mouseMoveHandler = onMouseMove;
-        mouseUpHandler = onMouseUp;
-        document.addEventListener('mousemove', mouseMoveHandler);
-        document.addEventListener('mouseup', mouseUpHandler);
+        moveHandler = onMove;
+        endHandler = onEnd;
+        document.addEventListener('mousemove', moveHandler);
+        document.addEventListener('mouseup', endHandler);
+        document.addEventListener('touchmove', moveHandler, { passive: false });
+        document.addEventListener('touchend', endHandler);
         e.preventDefault();
       }
 
-      element.addEventListener('mousedown', onMouseDown);
+      element.addEventListener('mousedown', onStart);
+      element.addEventListener('touchstart', onStart, { passive: false });
 
       var handler = {
         hasDragged: function () { return hasDragged; },
         resetDrag: function () { hasDragged = false; },
-        getClickDuration: function () { return Date.now() - clickStartTime; },
         cleanup: function () {
-          element.removeEventListener('mousedown', onMouseDown);
-          document.removeEventListener('mousemove', mouseMoveHandler);
-          document.removeEventListener('mouseup', mouseUpHandler);
+          element.removeEventListener('mousedown', onStart);
+          element.removeEventListener('touchstart', onStart);
+          document.removeEventListener('mousemove', moveHandler);
+          document.removeEventListener('mouseup', endHandler);
+          document.removeEventListener('touchmove', moveHandler);
+          document.removeEventListener('touchend', endHandler);
           var idx = DragManager.activeHandlers.indexOf(handler);
           if (idx > -1) DragManager.activeHandlers.splice(idx, 1);
         }
@@ -368,7 +388,7 @@
     win.__punkCssInjected = true;
     var s = document.createElement('style');
     s.id = 'punk-css';
-    s.dataset.version = '6.3';
+    s.dataset.version = '6.4';
     s.textContent = [
       '@keyframes punkIn{from{opacity:0;transform:translate(-50%,-50%) scale(.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}',
       '@keyframes punkSlide{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}',
@@ -415,12 +435,15 @@
   }
 
   function showToast(msg) {
+    var old = document.getElementById('punk-toast');
+    if (old) old.remove();
     var t = el('div', 'punk-anim',
       'position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-12px);' +
       'padding:10px 24px;background:' + C.primary + ';color:#fff;border-radius:' + C.radius + ';' +
       'font-size:14px;z-index:10000010;box-shadow:' + C.shadow3 + ';' +
       'font-family:' + C.font + ';transition:opacity .25s,transform .25s;opacity:0;'
     );
+    t.id = 'punk-toast';
     t.textContent = msg;
     document.body.appendChild(t);
     requestAnimationFrame(function () { t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)'; });
@@ -480,7 +503,6 @@
     cfgBtn.appendChild(svgEl(ICON.settings));
     cfgBtn.title = '设置';
     cfgBtn.addEventListener('click', function () {
-      isExpanded = false;
       panel.style.display = 'none';
       GM_setValue('punk_search_expanded', false);
       openQuickSearch();
@@ -544,7 +566,6 @@
     trigger.id = 'punk-qs-trigger';
 
     var dragHandler = DragManager.create(trigger, {
-      useBottom: true,
       onMove: function (e, deltaX, deltaY, elemStartLeft, elemStartBottom) {
         trigger.style.left = Math.max(0, Math.min(elemStartLeft + deltaX, win.innerWidth - 50)) + 'px';
         trigger.style.bottom = Math.max(0, Math.min(elemStartBottom + deltaY, win.innerHeight - 50)) + 'px';
@@ -568,7 +589,6 @@
         dragHandler.resetDrag();
         return;
       }
-      if (dragHandler.getClickDuration() > 200) return;
       toggleJumpPanel(trigger);
     });
 
@@ -589,9 +609,14 @@
       return;
     }
 
+    var rect = anchor.getBoundingClientRect();
+    var panelW = 300;
+    var left = Math.max(8, Math.min(rect.left, win.innerWidth - panelW - 8));
+    var bottom = Math.max(8, win.innerHeight - rect.top + 8);
+
     var enabled = getEnabledMarks();
     var panel = el('div', 'punk-anim',
-      'position:fixed;bottom:80px;right:20px;' +
+      'position:fixed;bottom:' + bottom + 'px;left:' + left + 'px;' +
       'background:' + C.glass + ';backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);' +
       'border:1px solid ' + C.glassBorder + ';border-radius:' + C.radius + ';padding:16px;' +
       'box-shadow:' + C.shadow3 + ';min-width:280px;max-width:320px;z-index:9999997;' +
@@ -752,6 +777,7 @@
         var b = el('button', 'punk-grid-btn');
         b.textContent = item.name;
         b.addEventListener('mouseenter', function () { selectedEngine = item; });
+        b.addEventListener('focus', function () { selectedEngine = item; });
         b.addEventListener('click', function () {
           var kw = input.value.trim();
           if (kw) window.open(buildSearchUrl(item, kw), '_blank');
@@ -825,7 +851,7 @@
         grid.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
           if (cb.checked) selected.push(cb.dataset.mark);
         });
-        GM_setValue('punk_setup_search', selected.join('-'));
+        GM_setValue('punk_setup_search', selected.join('|'));
         showToast('设置已保存，页面即将刷新');
         setTimeout(function () { location.reload(); }, 800);
       });
@@ -841,24 +867,19 @@
     div.appendChild(content);
 
     if (presetEngine) {
-      var kw = input.value.trim();
-      if (kw) {
-        window.open(buildSearchUrl(presetEngine, kw), '_blank');
-        div.remove();
-        return;
-      }
+      input.placeholder = '搜索 ' + presetEngine.name + '...';
     }
 
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        var k = input.value.trim();
-        if (!k) return;
-        if (selectedEngine) {
-          window.open(buildSearchUrl(selectedEngine, k), '_blank');
-        } else {
-          var firstBtn = div.querySelector('.punk-grid-btn');
-          if (firstBtn) firstBtn.click();
-        }
+      if (e.key !== 'Enter') return;
+      var k = input.value.trim();
+      if (!k) return;
+      var engine = presetEngine || selectedEngine;
+      if (engine) {
+        window.open(buildSearchUrl(engine, k), '_blank');
+      } else {
+        var firstBtn = div.querySelector('.punk-grid-btn');
+        if (firstBtn) firstBtn.click();
       }
     });
 
@@ -871,7 +892,6 @@
     try {
       injectCSS();
       var isSearch = isSearchPage();
-      console.log('[搜索引擎一键跳转] 当前页面是否为搜索页:', isSearch);
       if (isSearch) {
         initSearchPage();
       } else {
@@ -895,7 +915,6 @@
         document.addEventListener('keydown', win.__punkKeydownHandler);
         win.__punkEsc = true;
       }
-      console.log('[搜索引擎一键跳转] 初始化完成');
     } catch (e) {
       console.error('[搜索引擎一键跳转] init 错误:', e);
       throw e;
